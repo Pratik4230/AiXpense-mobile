@@ -1,5 +1,11 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+
+# ip route get 1 | awk '{print $7; exit}'
+
+# hostname -I | awk '{print $1}'
+
+
 # dependencies
 node_modules/
 

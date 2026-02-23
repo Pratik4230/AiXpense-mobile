@@ -1,7 +1,63 @@
+import "../../polyfills";
 import "../../global.css";
-import "@/polyfills";
+import { useEffect } from "react";
 import { Stack } from "expo-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Uniwind } from "uniwind";
+import { authClient } from "@/lib/authClient";
+import { storage, THEME_KEY } from "@/lib/storage";
+import { useFonts } from "expo-font";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import * as SplashScreen from "expo-splash-screen";
+
+SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { retry: 1, staleTime: 1000 * 60 * 5 },
+  },
+});
 
 export default function RootLayout() {
-  return <Stack />;
+  const { data: session } = authClient.useSession();
+
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  useEffect(() => {
+    const saved = storage.getString(THEME_KEY) as
+      | "light"
+      | "dark"
+      | "system"
+      | undefined;
+    Uniwind.setTheme(saved ?? "system");
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!session}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!!session}>
+          <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+      </Stack>
+    </QueryClientProvider>
+  );
 }
