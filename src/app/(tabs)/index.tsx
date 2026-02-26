@@ -1,62 +1,45 @@
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Text } from "react-native";
 import {
-  SafeAreaView,
-  Text,
   Button,
-  Input,
   Card,
+  TextField,
+  Input,
+  Label,
   Separator,
   Spinner,
-} from "@/components/ui";
+} from "heroui-native";
+import { SafeAreaView } from "@/components/ui";
 import { useUniwind } from "uniwind";
 
 export default function HomeScreen() {
   const { theme, hasAdaptiveThemes } = useUniwind();
-  const [inputVal, setInputVal] = useState("");
+  const [emailVal, setEmailVal] = useState("");
   const [pwVal, setPwVal] = useState("");
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerClassName="p-5 gap-8 pb-16">
         <View>
-          <Text variant="heading">UI Components</Text>
-          <Text variant="muted">
+          <Text className="text-2xl font-bold text-foreground">
+            UI Components
+          </Text>
+          <Text className="text-sm text-muted">
             Theme: {hasAdaptiveThemes ? "system" : theme}
           </Text>
         </View>
 
         <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
-            Text Variants
-          </Text>
-          <Card>
-            <Text variant="heading">Heading</Text>
-            <Text variant="subheading">Subheading</Text>
-            <Text variant="body">Body text — default style</Text>
-            <Text variant="label">Label</Text>
-            <Text variant="muted">Muted text</Text>
-            <Text variant="caption">Caption text</Text>
-          </Card>
-        </View>
-
-        <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
+          <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
             Buttons
           </Text>
           <Card className="gap-3">
-            <Button>Default (Primary)</Button>
+            <Button>Primary</Button>
+            <Button variant="secondary">Secondary</Button>
             <Button variant="outline">Outline</Button>
             <Button variant="ghost">Ghost</Button>
-            <Button variant="destructive">Destructive</Button>
-            <Button loading>Loading</Button>
-            <Button disabled>Disabled</Button>
+            <Button variant="danger">Danger</Button>
+            <Button isDisabled>Disabled</Button>
             <View className="flex-row gap-2">
               <Button size="sm" className="flex-1">
                 Small
@@ -69,93 +52,84 @@ export default function HomeScreen() {
         </View>
 
         <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
+          <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
             Inputs
           </Text>
           <Card className="gap-3">
-            <Input
-              label="Email"
-              placeholder="you@example.com"
-              value={inputVal}
-              onChangeText={setInputVal}
-              keyboardType="email-address"
-            />
-            <Input
-              label="Password"
-              placeholder="••••••••"
-              value={pwVal}
-              onChangeText={setPwVal}
-              secureTextEntry
-            />
-            <Input
-              label="With Error"
-              placeholder="Invalid value"
-              value=""
-              error="This field is required"
-            />
-            <Input
-              label="Disabled"
-              placeholder="Not editable"
-              value="Some value"
-              editable={false}
-            />
+            <TextField>
+              <Label>Email</Label>
+              <Input
+                placeholder="you@example.com"
+                value={emailVal}
+                onChangeText={setEmailVal}
+                keyboardType="email-address"
+              />
+            </TextField>
+            <TextField>
+              <Label>Password</Label>
+              <Input
+                placeholder="••••••••"
+                value={pwVal}
+                onChangeText={setPwVal}
+                secureTextEntry
+              />
+            </TextField>
+            <TextField isInvalid>
+              <Label>With Error</Label>
+              <Input placeholder="Invalid value" />
+            </TextField>
+            <TextField isDisabled>
+              <Label>Disabled</Label>
+              <Input placeholder="Not editable" value="Some value" />
+            </TextField>
           </Card>
         </View>
 
         <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
+          <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
             Card + Separator
           </Text>
           <Card>
-            <Text variant="label">Card title</Text>
-            <Text variant="muted">Card subtitle or description text</Text>
+            <Text className="text-base font-semibold text-foreground">
+              Card title
+            </Text>
+            <Text className="text-sm text-muted">
+              Card subtitle or description text
+            </Text>
             <Separator className="my-3" />
-            <Text variant="body">Content below separator</Text>
+            <Text className="text-sm text-foreground">
+              Content below separator
+            </Text>
           </Card>
         </View>
 
         <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
+          <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
             Spinner
           </Text>
           <Card className="flex-row gap-6 items-center">
-            <Spinner size="small" />
-            <Spinner size="large" />
+            <Spinner size="sm" />
+            <Spinner size="md" />
           </Card>
         </View>
 
         <View className="gap-3">
-          <Text
-            variant="label"
-            className="text-foreground-secondary uppercase text-xs tracking-widest"
-          >
+          <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
             Color Tokens
           </Text>
           <Card className="gap-2">
             {[
-              ["bg-primary", "Primary"],
-              ["bg-destructive", "Destructive"],
+              ["bg-accent", "Accent"],
+              ["bg-danger", "Danger"],
               ["bg-success", "Success"],
               ["bg-warning", "Warning"],
-              ["bg-muted", "Muted"],
-              ["bg-card", "Card"],
-              ["bg-border", "Border"],
+              ["bg-surface", "Surface"],
+              ["bg-default", "Default"],
             ].map(([cls, label]) => (
               <View key={cls} className="flex-row items-center gap-3">
                 <View className={`w-8 h-8 rounded-lg ${cls}`} />
-                <Text variant="body">{label}</Text>
-                <Text variant="caption" className="ml-auto">
-                  {cls}
-                </Text>
+                <Text className="text-sm text-foreground">{label}</Text>
+                <Text className="text-xs text-muted ml-auto">{cls}</Text>
               </View>
             ))}
           </Card>
