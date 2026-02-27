@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View, Text } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router, useLocalSearchParams } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Text, SafeAreaView } from "@/components/ui";
+import { Button, TextField, Input, Label, FieldError } from "heroui-native";
+import { SafeAreaView } from "@/components/ui";
 import { authClient } from "@/lib/authClient";
 
 const schema = z
@@ -54,8 +56,10 @@ export default function ResetPasswordScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-6 gap-6">
-          <Text variant="heading">Password updated</Text>
-          <Text variant="muted" className="text-center">
+          <Text className="text-3xl font-bold text-foreground">
+            Password updated
+          </Text>
+          <Text className="text-sm text-muted text-center">
             Your password has been reset. You can now sign in with your new
             password.
           </Text>
@@ -72,15 +76,23 @@ export default function ResetPasswordScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView
-        contentContainerClassName="flex-grow justify-center px-6 py-10"
+      <KeyboardAwareScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 24,
+          paddingVertical: 40,
+        }}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={16}
       >
         <View className="mb-10">
-          <Text variant="heading" className="mb-1">
+          <Text className="text-3xl font-bold text-foreground mb-1">
             Reset password
           </Text>
-          <Text variant="muted">Enter your new password below</Text>
+          <Text className="text-sm text-muted">
+            Enter your new password below
+          </Text>
         </View>
 
         <View className="gap-4">
@@ -88,15 +100,17 @@ export default function ResetPasswordScreen() {
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="New Password"
-                placeholder="••••••••"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry
-                autoComplete="new-password"
-                error={errors.password?.message}
-              />
+              <TextField isInvalid={!!errors.password}>
+                <Label>New Password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                  autoComplete="new-password"
+                />
+                <FieldError>{errors.password?.message}</FieldError>
+              </TextField>
             )}
           />
 
@@ -104,32 +118,30 @@ export default function ResetPasswordScreen() {
             control={control}
             name="confirmPassword"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Confirm Password"
-                placeholder="••••••••"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry
-                error={errors.confirmPassword?.message}
-              />
+              <TextField isInvalid={!!errors.confirmPassword}>
+                <Label>Confirm Password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                />
+                <FieldError>{errors.confirmPassword?.message}</FieldError>
+              </TextField>
             )}
           />
 
-          {error ? (
-            <Text variant="caption" className="text-destructive">
-              {error}
-            </Text>
-          ) : null}
+          {error ? <Text className="text-xs text-danger">{error}</Text> : null}
 
           <Button
             onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
+            isDisabled={isSubmitting}
             className="mt-2"
           >
-            Reset Password
+            {isSubmitting ? "Resetting..." : "Reset Password"}
           </Button>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

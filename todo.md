@@ -12,6 +12,72 @@
 
 ---
 
+## Important Docs & Paths
+
+### Better Auth
+
+- `betterAuth.md` — client setup, session, sign in/out, updateUser, changePassword, revokeSession
+- `protectedRoute.md` — protected route pattern with Expo Router
+
+### Vercel AI SDK
+
+- `VercelAiSDK_Expo.md` — useChat, streamText, AI SDK v6 in Expo
+
+### Uniwind / Theme
+
+- `Theme/Globalcss.md` — global.css setup, `@import heroui-native/styles`, CSS vars
+- `Theme/ThemeBasic.md` — basic theme setup
+- `Theme/CustomThemes.md` — custom theme creation
+- `Theme/Useuniwind.md` — `useUniwind()` hook, toggle dark/light, access current theme
+- `Theme/UpdateCssVariables.md` — update CSS vars at runtime
+- `Theme/AdvanceStyleTheme.md` — advanced styling patterns
+
+### Storage
+
+- `MMKV_V4.md` — react-native-mmkv v4 usage
+
+### HeroUI Native Components (`.heroui-docs/native/components/`)
+
+| Category     | Path                                 | Key components                                                                |
+| ------------ | ------------------------------------ | ----------------------------------------------------------------------------- |
+| Buttons      | `(buttons)/button.mdx`               | Button, variants, sizes, isIconOnly                                           |
+| Buttons      | `(buttons)/close-button.mdx`         | CloseButton                                                                   |
+| Forms        | `(forms)/text-field.mdx`             | TextField compound API                                                        |
+| Forms        | `(forms)/input.mdx`                  | Input                                                                         |
+| Forms        | `(forms)/label.mdx`                  | Label                                                                         |
+| Forms        | `(forms)/field-error.mdx`            | FieldError                                                                    |
+| Forms        | `(forms)/select.mdx`                 | Select, Select.Item                                                           |
+| Forms        | `(forms)/text-area.mdx`              | TextArea                                                                      |
+| Forms        | `(forms)/checkbox.mdx`               | Checkbox                                                                      |
+| Forms        | `(forms)/radio-group.mdx`            | RadioGroup                                                                    |
+| Forms        | `(forms)/search-field.mdx`           | SearchField                                                                   |
+| Forms        | `(forms)/input-otp.mdx`              | InputOTP (OTP verification)                                                   |
+| Data Display | `(data-display)/chip.mdx`            | Chip — variant: primary/secondary/tertiary/soft, color: accent/danger/warning |
+| Layout       | `(layout)/card.mdx`                  | Card, Card.Header, Card.Body, Card.Footer, Card.Title                         |
+| Layout       | `(layout)/separator.mdx`             | Separator                                                                     |
+| Layout       | `(layout)/surface.mdx`               | Surface                                                                       |
+| Media        | `(media)/avatar.mdx`                 | Avatar, Avatar.Image, Avatar.Fallback — requires `alt` prop                   |
+| Navigation   | `(navigation)/tabs.mdx`              | Tabs, Tabs.Tab                                                                |
+| Navigation   | `(navigation)/list-group.mdx`        | ListGroup — settings-style rows                                               |
+| Navigation   | `(navigation)/accordion.mdx`         | Accordion                                                                     |
+| Overlays     | `(overlays)/bottom-sheet.mdx`        | BottomSheet compound API                                                      |
+| Overlays     | `(overlays)/dialog.mdx`              | Dialog — native replacement for Alert.alert                                   |
+| Overlays     | `(overlays)/toast.mdx`               | Toast — notifications                                                         |
+| Overlays     | `(overlays)/popover.mdx`             | Popover                                                                       |
+| Feedback     | `(feedback)/spinner.mdx`             | Spinner                                                                       |
+| Feedback     | `(feedback)/skeleton.mdx`            | Skeleton                                                                      |
+| Feedback     | `(feedback)/alert.mdx`               | Alert banner                                                                  |
+| Controls     | `(controls)/switch.mdx`              | Switch — toggle                                                               |
+| Controls     | `(controls)/slider.mdx`              | Slider                                                                        |
+| Utilities    | `(utilities)/pressable-feedback.mdx` | PressableFeedback                                                             |
+| Utilities    | `(utilities)/scroll-shadow.mdx`      | ScrollShadow                                                                  |
+
+### HeroUI Native Getting Started
+
+- `.heroui-docs/native/getting-started/` — install, provider setup, theming basics
+
+---
+
 ## Phase 0 — Foundation (Core Setup)
 
 - [x] Install dependencies (tanstack-query, axios, mmkv, react-hook-form, zod, date-fns, clsx, tailwind-merge)
