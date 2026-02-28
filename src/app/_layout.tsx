@@ -67,6 +67,10 @@ export default function RootLayout() {
               </Stack.Protected>
               <Stack.Protected guard={!!session}>
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="transactions"
+                  options={{ presentation: "card" }}
+                />
               </Stack.Protected>
             </Stack>
           </QueryClientProvider>
