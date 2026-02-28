@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { View, ScrollView, Pressable } from "react-native";
+import { View, Pressable, Text } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Text, SafeAreaView, Separator } from "@/components/ui";
+import {
+  Button,
+  TextField,
+  Input,
+  Label,
+  FieldError,
+  Separator,
+} from "heroui-native";
+import { SafeAreaView } from "@/components/ui";
+
 import { authClient } from "@/lib/authClient";
 
 const schema = z
@@ -44,20 +54,31 @@ export default function SignupScreen() {
       setError(result.error.message ?? "Registration failed");
       return;
     }
-    router.push("/(auth)/verify-email");
+    router.push({
+      pathname: "/(auth)/verify-email",
+      params: { email: data.email, password: data.password },
+    });
   };
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView
-        contentContainerClassName="flex-grow justify-center px-6 py-10"
+      <KeyboardAwareScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: "center",
+          paddingHorizontal: 24,
+          paddingVertical: 40,
+        }}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={16}
       >
         <View className="mb-10">
-          <Text variant="heading" className="mb-1">
+          <Text className="text-3xl font-bold text-foreground mb-1">
             Create account
           </Text>
-          <Text variant="muted">Start tracking your expenses with AI</Text>
+          <Text className="text-sm text-muted">
+            Start tracking your expenses with AI
+          </Text>
         </View>
 
         <View className="gap-4">
@@ -65,15 +86,17 @@ export default function SignupScreen() {
             control={control}
             name="name"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Full Name"
-                placeholder="John Doe"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="words"
-                autoComplete="name"
-                error={errors.name?.message}
-              />
+              <TextField isInvalid={!!errors.name}>
+                <Label>Full Name</Label>
+                <Input
+                  placeholder="John Doe"
+                  value={value}
+                  onChangeText={onChange}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                />
+                <FieldError>{errors.name?.message}</FieldError>
+              </TextField>
             )}
           />
 
@@ -81,15 +104,17 @@ export default function SignupScreen() {
             control={control}
             name="email"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Email"
-                placeholder="you@example.com"
-                value={value}
-                onChangeText={onChange}
-                keyboardType="email-address"
-                autoComplete="email"
-                error={errors.email?.message}
-              />
+              <TextField isInvalid={!!errors.email}>
+                <Label>Email</Label>
+                <Input
+                  placeholder="you@example.com"
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                />
+                <FieldError>{errors.email?.message}</FieldError>
+              </TextField>
             )}
           />
 
@@ -97,15 +122,17 @@ export default function SignupScreen() {
             control={control}
             name="password"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Password"
-                placeholder="••••••••"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry
-                autoComplete="new-password"
-                error={errors.password?.message}
-              />
+              <TextField isInvalid={!!errors.password}>
+                <Label>Password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                  autoComplete="new-password"
+                />
+                <FieldError>{errors.password?.message}</FieldError>
+              </TextField>
             )}
           />
 
@@ -113,43 +140,39 @@ export default function SignupScreen() {
             control={control}
             name="confirmPassword"
             render={({ field: { onChange, value } }) => (
-              <Input
-                label="Confirm Password"
-                placeholder="••••••••"
-                value={value}
-                onChangeText={onChange}
-                secureTextEntry
-                error={errors.confirmPassword?.message}
-              />
+              <TextField isInvalid={!!errors.confirmPassword}>
+                <Label>Confirm Password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                />
+                <FieldError>{errors.confirmPassword?.message}</FieldError>
+              </TextField>
             )}
           />
 
-          {error ? (
-            <Text variant="caption" className="text-destructive">
-              {error}
-            </Text>
-          ) : null}
+          {error ? <Text className="text-xs text-danger">{error}</Text> : null}
 
           <Button
             onPress={handleSubmit(onSubmit)}
-            loading={isSubmitting}
+            isDisabled={isSubmitting}
             className="mt-2"
           >
-            Create Account
+            {isSubmitting ? "Creating..." : "Create Account"}
           </Button>
         </View>
 
         <Separator className="my-8" />
 
         <View className="flex-row justify-center gap-1">
-          <Text variant="muted">Already have an account?</Text>
+          <Text className="text-sm text-muted">Already have an account?</Text>
           <Pressable onPress={() => router.back()}>
-            <Text variant="label" className="text-primary">
-              Sign in
-            </Text>
+            <Text className="text-sm font-semibold text-accent">Sign in</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
