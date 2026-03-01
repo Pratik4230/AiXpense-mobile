@@ -1,15 +1,27 @@
-import { streamText, UIMessage, convertToModelMessages } from "ai";
-import { openai } from "@ai-sdk/openai";
+const WEB_API = process.env.EXPO_PUBLIC_WEB_API_URL ?? "http://localhost:3000";
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  const cookie = req.headers.get("Cookie") ?? "";
+  const body = await req.text();
 
-  const result = streamText({
-    model: openai("gpt-5-mini"),
-    messages: await convertToModelMessages(messages),
+  const response = await fetch(`${WEB_API}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookie,
+    },
+    body,
   });
 
-  return result.toUIMessageStreamResponse({
+  if (!response.ok) {
+    return new Response(await response.text(), {
+      status: response.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  return new Response(response.body, {
+    status: 200,
     headers: {
       "Content-Type": "application/octet-stream",
       "Content-Encoding": "none",
