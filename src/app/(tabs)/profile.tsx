@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Text, Alert, ScrollView, Pressable } from "react-native";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import {
   Avatar,
   Button,
@@ -455,6 +456,37 @@ export default function ProfileScreen() {
               <Ionicons name="log-out-outline" size={16} color={mutedColor} />
               <Button.Label>Sign out</Button.Label>
             </Button>
+          </Card.Body>
+        </Card>
+
+        <Card className="mb-4">
+          <Card.Body className="gap-1">
+            <Text className="text-xs font-semibold text-muted uppercase tracking-widest mb-2">
+              Legal
+            </Text>
+            {(
+              [
+                {
+                  label: "Privacy Policy",
+                  url: "https://aixpense.in/privacy",
+                },
+                {
+                  label: "Terms & Conditions",
+                  url: "https://aixpense.in/terms",
+                },
+                { label: "Refund Policy", url: "https://aixpense.in/refund" },
+                { label: "Contact Us", url: "https://aixpense.in/contact" },
+              ] as const
+            ).map(({ label, url }) => (
+              <Pressable
+                key={label}
+                onPress={() => WebBrowser.openBrowserAsync(url)}
+                className="flex-row items-center justify-between py-3 border-b border-separator last:border-b-0"
+              >
+                <Text className="text-sm text-foreground">{label}</Text>
+                <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+              </Pressable>
+            ))}
           </Card.Body>
         </Card>
 
