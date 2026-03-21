@@ -4,14 +4,13 @@ import {
   FlatList,
   useWindowDimensions,
   useColorScheme,
+  Pressable,
 } from "react-native";
-import ReanimatedSwipeable, {
-  type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
 import { Ionicons } from "@expo/vector-icons";
-import { Chip } from "heroui-native";
+import { Chip, BottomSheet } from "heroui-native";
 import { ToolLoading } from "./ToolLoading";
-import { useRef } from "react";
+import { useState } from "react";
+import * as Haptics from "expo-haptics";
 
 interface ChatMessage {
   id: string;
@@ -136,6 +135,149 @@ function CardContent({
   );
 }
 
+interface ActionTarget {
+  id: string;
+  type: "expense" | "income";
+  item: string;
+  amount: number;
+}
+
+function CardActionSheet({
+  target,
+  onClose,
+  onEdit,
+  onDelete,
+}: {
+  target: ActionTarget | null;
+  onClose: () => void;
+  onEdit: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+  onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+}) {
+  const isDark = useColorScheme() === "dark";
+
+  return (
+    <BottomSheet isOpen={!!target} onOpenChange={(v) => !v && onClose()}>
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content enableDynamicSizing>
+          <View style={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 8 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 15,
+                fontWeight: "700",
+                color: isDark ? "#e4e4e7" : "#18181b",
+                marginBottom: 4,
+              }}
+            >
+              {target?.item}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: isDark ? "#71717a" : "#a1a1aa",
+                marginBottom: 20,
+              }}
+            >
+              {target ? fmt(target.amount) : ""}
+            </Text>
+
+            <Pressable
+              onPress={() => {
+                if (!target) return;
+                onClose();
+                onEdit(target.id, target.type, target.item, target.amount);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 4,
+                borderRadius: 12,
+                backgroundColor: pressed
+                  ? isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"
+                  : "transparent",
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="pencil" size={16} color="#3b82f6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#e4e4e7" : "#18181b" }}>
+                  Edit transaction
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? "#52525b" : "#a1a1aa", marginTop: 1 }}>
+                  Change amount, category, or details
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={isDark ? "#52525b" : "#d4d4d8"} />
+            </Pressable>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                marginVertical: 2,
+              }}
+            />
+
+            <Pressable
+              onPress={() => {
+                if (!target) return;
+                onClose();
+                onDelete(target.id, target.type, target.item, target.amount);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 4,
+                borderRadius: 12,
+                backgroundColor: pressed
+                  ? isDark ? "rgba(239,68,68,0.08)" : "rgba(239,68,68,0.06)"
+                  : "transparent",
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.1)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="trash" size={16} color="#ef4444" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: "600", color: "#ef4444" }}>
+                  Delete transaction
+                </Text>
+                <Text style={{ fontSize: 12, color: isDark ? "#52525b" : "#a1a1aa", marginTop: 1 }}>
+                  Remove this permanently
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={isDark ? "#52525b" : "#d4d4d8"} />
+            </Pressable>
+          </View>
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
+  );
+}
+
 function SavedCard({
   id,
   type,
@@ -143,8 +285,8 @@ function SavedCard({
   amount,
   category,
   subcategory,
-  onEdit,
-  onDelete,
+  isOutdated,
+  onLongPress,
 }: {
   id?: string;
   type: "expense" | "income";
@@ -152,28 +294,18 @@ function SavedCard({
   amount: number;
   category: string;
   subcategory?: string;
-  onEdit?: (
-    id: string,
-    type: "expense" | "income",
-    item: string,
-    amount: number,
-  ) => void;
-  onDelete?: (
-    id: string,
-    type: "expense" | "income",
-    item: string,
-    amount: number,
-  ) => void;
+  isOutdated?: boolean;
+  onLongPress?: () => void;
 }) {
   const isDark = useColorScheme() === "dark";
   const { width } = useWindowDimensions();
   const isExpense = type === "expense";
   const accent = isExpense ? "#10b981" : "#3b82f6";
-  const swipeRef = useRef<SwipeableMethods>(null);
   const minWidth = width * 0.7;
+  const canInteract = !!id && !!onLongPress && !isOutdated;
 
-  if (!id || (!onEdit && !onDelete)) {
-    return (
+  const card = (
+    <View style={{ opacity: isOutdated ? 0.45 : 1 }}>
       <CardContent
         type={type}
         item={item}
@@ -184,88 +316,21 @@ function SavedCard({
         accent={accent}
         minWidth={minWidth}
       />
-    );
-  }
-
-  const renderRightActions = () => (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        paddingLeft: 8,
-      }}
-    >
-      {onEdit && (
-        <Pressable
-          onPress={() => {
-            swipeRef.current?.close();
-            onEdit(id, type, item, amount);
-          }}
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? "#2563eb" : "#3b82f6",
-            borderRadius: 12,
-            justifyContent: "center",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            alignSelf: "stretch",
-          })}
-        >
-          <Ionicons name="pencil" size={18} color="#fff" />
-          <Text
-            style={{ color: "#fff", fontSize: 11, fontWeight: "600", marginTop: 4 }}
-          >
-            Edit
-          </Text>
-        </Pressable>
-      )}
-      {onDelete && (
-        <Pressable
-          onPress={() => {
-            swipeRef.current?.close();
-            onDelete(id, type, item, amount);
-          }}
-          style={({ pressed }) => ({
-            backgroundColor: pressed ? "#dc2626" : "#ef4444",
-            borderRadius: 12,
-            justifyContent: "center",
-            alignItems: "center",
-            paddingHorizontal: 20,
-            alignSelf: "stretch",
-          })}
-        >
-          <Ionicons name="trash" size={18} color="#fff" />
-          <Text
-            style={{ color: "#fff", fontSize: 11, fontWeight: "600", marginTop: 4 }}
-          >
-            Delete
-          </Text>
-        </View>
-      )}
     </View>
   );
 
+  if (!canInteract) return card;
+
   return (
-    <ReanimatedSwipeable
-      ref={swipeRef}
-      renderRightActions={renderRightActions}
-      onSwipeableWillOpen={() => {}}
-      friction={2}
-      rightThreshold={60}
-      overshootRight={false}
-      onSwipeableOpen={() => swipeRef.current?.close()}
+    <Pressable
+      onLongPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onLongPress();
+      }}
+      delayLongPress={300}
     >
-      <CardContent
-        type={type}
-        item={item}
-        amount={amount}
-        category={category}
-        subcategory={subcategory}
-        isDark={isDark}
-        accent={accent}
-        minWidth={minWidth}
-      />
-    </ReanimatedSwipeable>
+      {card}
+    </Pressable>
   );
 }
 
@@ -333,19 +398,19 @@ function DeletedCard({
   );
 }
 
-function UpdatedCard({
+function UpdatedCardContent({
   type,
   item,
   amount,
   category,
+  isDark,
 }: {
   type: "expense" | "income";
   item: string;
   amount: number;
   category: string;
+  isDark: boolean;
 }) {
-  const isDark = useColorScheme() === "dark";
-
   return (
     <View
       style={{
@@ -424,35 +489,55 @@ function UpdatedCard({
   );
 }
 
+function UpdatedCard({
+  id,
+  type,
+  item,
+  amount,
+  category,
+  isOutdated,
+  onLongPress,
+}: {
+  id?: string;
+  type: "expense" | "income";
+  item: string;
+  amount: number;
+  category: string;
+  isOutdated?: boolean;
+  onLongPress?: () => void;
+}) {
+  const isDark = useColorScheme() === "dark";
+
+  const content = (
+    <View style={{ opacity: isOutdated ? 0.45 : 1 }}>
+      <UpdatedCardContent type={type} item={item} amount={amount} category={category} isDark={isDark} />
+    </View>
+  );
+
+  if (!id || !onLongPress || isOutdated) return content;
+
+  return (
+    <Pressable
+      onLongPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onLongPress();
+      }}
+      delayLongPress={300}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
 function renderToolCard(
   msg: ChatMessage,
   part: any,
   index: number,
-  onAction: (text: string) => void,
+  setActionTarget: (target: ActionTarget) => void,
+  outdatedIds: Map<string, string>,
 ) {
   const key = `tool-${msg.id}-${index}`;
-
-  const handleEdit = (
-    id: string,
-    type: "expense" | "income",
-    item: string,
-    amount: number,
-  ) => {
-    onAction(
-      `[ATTACHED_TRANSACTION: id=${id}, type=${type}, item=${item}, amount=${amount}, action=edit] `,
-    );
-  };
-
-  const handleDelete = (
-    id: string,
-    type: "expense" | "income",
-    item: string,
-    amount: number,
-  ) => {
-    onAction(
-      `[ATTACHED_TRANSACTION: id=${id}, type=${type}, item=${item}, amount=${amount}, action=delete]`,
-    );
-  };
+  const isOutdated = (id: string) => outdatedIds.has(id) && outdatedIds.get(id) !== msg.id;
 
   if (part.type === "tool-saveExpense") {
     if (part.state === "output-available" && part.output?.expense) {
@@ -466,8 +551,8 @@ function renderToolCard(
           amount={e.amount}
           category={e.category}
           subcategory={e.subcategory}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          isOutdated={isOutdated(e.id)}
+          onLongPress={() => setActionTarget({ id: e.id, type: "expense", item: e.item, amount: e.amount })}
         />
       );
     }
@@ -488,8 +573,8 @@ function renderToolCard(
           amount={inc.amount}
           category={inc.category}
           subcategory={inc.subcategory}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          isOutdated={isOutdated(inc.id)}
+          onLongPress={() => setActionTarget({ id: inc.id, type: "income", item: inc.source, amount: inc.amount })}
         />
       );
     }
@@ -537,10 +622,13 @@ function renderToolCard(
       return (
         <UpdatedCard
           key={key}
+          id={t.id}
           type={t.type as "expense" | "income"}
           item={t.item}
           amount={t.amount}
           category={t.category}
+          isOutdated={isOutdated(t.id)}
+          onLongPress={() => setActionTarget({ id: t.id, type: t.type, item: t.item, amount: t.amount })}
         />
       );
     }
@@ -552,14 +640,30 @@ function renderToolCard(
   return null;
 }
 
+function formatUserText(text: string): string {
+  if (!text.includes("[ATTACHED_TRANSACTION:")) return text;
+  const actionMatch = text.match(/action=(\w+)/);
+  const itemMatch = text.match(/item=([^,\]]+)/);
+  const amountMatch = text.match(/amount=(\d+)/);
+  const action = actionMatch?.[1];
+  const itemName = itemMatch?.[1];
+  const amount = amountMatch?.[1];
+  const userText = text.split("]").slice(1).join("]").trim();
+
+  if (action === "delete") return `Delete: ${itemName} (\u20b9${amount})`;
+  return userText ? `Edit ${itemName}: ${userText}` : `Edit: ${itemName} (\u20b9${amount})`;
+}
+
 function MessageBubble({
   message,
   isDark,
-  onAction,
+  setActionTarget,
+  outdatedIds,
 }: {
   message: ChatMessage;
   isDark: boolean;
-  onAction: (text: string) => void;
+  setActionTarget: (target: ActionTarget) => void;
+  outdatedIds: Map<string, string>;
 }) {
   const isUser = message.role === "user";
   const toolParts = message.parts?.filter((p) => p.type !== "text") ?? [];
@@ -580,7 +684,7 @@ function MessageBubble({
           }}
         >
           {toolParts.map((part, i) =>
-            renderToolCard(message, part, i, onAction),
+            renderToolCard(message, part, i, setActionTarget, outdatedIds),
           )}
         </View>
       )}
@@ -611,7 +715,7 @@ function MessageBubble({
                 color: isUser ? "#fff" : isDark ? "#e4e4e7" : "#1f2937",
               }}
             >
-              {part.text}
+              {isUser ? formatUserText(part.text) : part.text}
             </Text>
           ))}
         </View>
@@ -623,12 +727,15 @@ function MessageBubble({
 interface Props {
   messages: ChatMessage[];
   isStreaming: boolean;
-  onAction: (text: string) => void;
+  onEdit: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+  onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+  outdatedIds: Map<string, string>;
   flatListRef?: React.RefObject<FlatList | null>;
 }
 
-export function MessageList({ messages, isStreaming, onAction }: Props) {
+export function MessageList({ messages, isStreaming, onEdit, onDelete, outdatedIds }: Props) {
   const isDark = useColorScheme() === "dark";
+  const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
 
   const data = (() => {
     const base =
@@ -648,38 +755,51 @@ export function MessageList({ messages, isStreaming, onAction }: Props) {
   })();
 
   return (
-    <FlatList
-      data={data}
-      inverted
-      renderItem={({ item }) => {
-        if (item.id === "__loading__") {
-          return (
-            <View style={{ alignSelf: "flex-start", marginBottom: 16 }}>
-              <View
-                style={{
-                  borderRadius: 18,
-                  borderBottomLeftRadius: 4,
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  backgroundColor: isDark ? "#27272a" : "#f3f4f6",
-                }}
-              >
-                <ToolLoading type="thinking" />
+    <>
+      <FlatList
+        data={data}
+        inverted
+        renderItem={({ item }) => {
+          if (item.id === "__loading__") {
+            return (
+              <View style={{ alignSelf: "flex-start", marginBottom: 16 }}>
+                <View
+                  style={{
+                    borderRadius: 18,
+                    borderBottomLeftRadius: 4,
+                    paddingHorizontal: 14,
+                    paddingVertical: 10,
+                    backgroundColor: isDark ? "#27272a" : "#f3f4f6",
+                  }}
+                >
+                  <ToolLoading type="thinking" />
+                </View>
               </View>
-            </View>
+            );
+          }
+          return (
+            <MessageBubble
+              message={item}
+              isDark={isDark}
+              setActionTarget={setActionTarget}
+              outdatedIds={outdatedIds}
+            />
           );
-        }
-        return (
-          <MessageBubble message={item} isDark={isDark} onAction={onAction} />
-        );
-      }}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={{
-        paddingHorizontal: 16,
-        paddingBottom: 16,
-        paddingTop: 8,
-      }}
-      showsVerticalScrollIndicator={false}
-    />
+        }}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: 16,
+          paddingTop: 8,
+        }}
+        showsVerticalScrollIndicator={false}
+      />
+      <CardActionSheet
+        target={actionTarget}
+        onClose={() => setActionTarget(null)}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </>
   );
 }

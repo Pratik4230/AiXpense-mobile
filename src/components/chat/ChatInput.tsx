@@ -2,18 +2,28 @@ import { Platform, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Input } from "heroui-native";
+import type { SelectedTransaction } from "./TransactionAttachment";
 
 interface Props {
   value: string;
   onChange: (v: string) => void;
   onSend: () => void;
   isLoading: boolean;
+  selectedTransaction?: SelectedTransaction | null;
 }
 
-export function ChatInput({ value, onChange, onSend, isLoading }: Props) {
+export function ChatInput({ value, onChange, onSend, isLoading, selectedTransaction }: Props) {
   const isDark = useColorScheme() === "dark";
   const { bottom } = useSafeAreaInsets();
   const hasText = value.trim().length > 0;
+  const isDelete = selectedTransaction?.action === "delete";
+  const canSend = isDelete || hasText;
+
+  const placeholder = selectedTransaction
+    ? selectedTransaction.action === "delete"
+      ? "Tap send to confirm delete..."
+      : "Type what to change..."
+    : "Message...";
 
   return (
     <View
@@ -32,11 +42,11 @@ export function ChatInput({ value, onChange, onSend, isLoading }: Props) {
       <Input
         value={value}
         onChangeText={onChange}
-        placeholder="Message..."
+        placeholder={placeholder}
         multiline
         maxLength={500}
         submitBehavior="newline"
-        isDisabled={isLoading}
+        isDisabled={isLoading || isDelete}
         className="flex-1 rounded-full px-4"
         style={{
           maxHeight: 120,
@@ -52,14 +62,14 @@ export function ChatInput({ value, onChange, onSend, isLoading }: Props) {
         isIconOnly
         size="sm"
         onPress={onSend}
-        isDisabled={isLoading || !hasText}
-        className="rounded-full w-10 h-10 self-end mb-0.5"
+        isDisabled={isLoading || !canSend}
+        className={`rounded-full w-10 h-10 self-end mb-0.5 ${isDelete ? "bg-danger" : ""}`}
       >
         <Ionicons
-          name={hasText ? "send" : "mic"}
+          name={isDelete ? "trash" : canSend ? "send" : "mic"}
           size={18}
           color="#fff"
-          style={hasText ? { marginLeft: 2 } : undefined}
+          style={canSend && !isDelete ? { marginLeft: 2 } : undefined}
         />
       </Button>
     </View>

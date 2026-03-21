@@ -32,7 +32,7 @@ const heroConfig: HeroUINativeConfig = {
 };
 
 export default function RootLayout() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -51,10 +51,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsLoaded && !isPending) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, isPending]);
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || isPending) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

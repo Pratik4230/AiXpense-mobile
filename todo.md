@@ -1,5 +1,11 @@
 # Aixpense Mobile - Development Plan
 
+## TOP PRIORITY
+
+- [ ] **Remove manual memoization across entire app** — React 19.1 + React Compiler (`reactCompiler: true`) handles memoization automatically. Strip all `useMemo`, `useCallback`, and `React.memo`/`memo()` from every file. They are redundant and add unnecessary code noise. `useRef` and `useState` should stay.
+
+---
+
 ## Stack
 
 - **Framework:** Expo SDK 54 + Expo Router v6
@@ -109,6 +115,7 @@
 - [ ] `POST /api/auth/sign-out` — Logout + clear mmkv token
 - [ ] `GET /api/auth/get-session` — Fetch and hydrate session on app launch
 - [ ] Auth guard in root `_layout.tsx` — redirect unauthenticated users to `(auth)/login`
+- [ ] App-wide Onboarding flow route for first-time users (moved from Chat phase)
 
 ---
 
@@ -186,6 +193,7 @@
 - [ ] Category Breakdown chart (donut/pie) with 24 distinct category colors
 - [ ] Budget vs Actual progress bars (expense mode only)
 - [ ] Top Expenses / Top Income list with "View All" link to filtered Transactions
+- [ ] AI Coach Insight Card (Premium feature to show weekly/monthly insights)
 
 **Services (`src/services/reports.ts`)**
 
@@ -199,22 +207,118 @@
 
 ## Phase 6 — AI Chat (AiXpense)
 
-**Screen (`src/app/(tabs)/chat.tsx`)**
+> Priority order: P1 → P2 → P3 → P4. Complete P1 before moving to P2.
 
-- [ ] Conversation list sidebar / bottom sheet to switch between past chats
-- [ ] Chat view with message bubbles (user / assistant)
-- [ ] Streaming responses via Expo API route (`src/app/api/chat+api.ts` — already exists)
-- [ ] New chat button
-- [ ] Free trial counter display (X of 5 messages used)
-- [ ] Upgrade prompt modal when trials exhausted (routes to Subscription screen)
-- [ ] Conversation message limit dialog (max messages per conversation)
-- [ ] Onboarding modal for first-time users who haven't completed onboarding
+---
+
+### P1 — Edit / Delete Broken (Fix First)
+
+The swipe edit/delete on `SavedCard` calls `onAction(prefix)` → `sendMessage({ text: prefix })` in `chat.tsx`, but:
+
+- [ ] **`handleAction` has no trial gating** — must check `freeTrials <= 0` before `sendMessage`; show upgrade dialog if exhausted
+- [ ] **No `optimisticDecrement()`** — trial count is not decremented when an action message is sent
+- [ ] **`UpdatedCard` has no swipe actions** — after a transaction is updated, the resulting `UpdatedCard` in `MessageList` has no `onEdit`/`onDelete` props; swipe is impossible. Add `onEdit`/`onDelete` (same as `SavedCard`) to `UpdatedCard`
+- [ ] **`[ATTACHED_TRANSACTION:]` prefix not stripped in user bubble** — when role is `user` and text contains `[ATTACHED_TRANSACTION:`, rewrite display text to `"Edit: {item} (₹{amount})"` or `"Delete: {item} (₹{amount})"` instead of showing the raw prefix string
+- [ ] **`outdatedIds` tracking missing** — after `tool-deleteTransaction` or `tool-updateTransaction` succeeds, add the transaction id to a local `outdatedIds` set; pass it into `SavedCard` and mark card as outdated/stale so user knows it is no longer the current state
+
+---
+
+### P2 — Conversation Persistence (Biggest Missing Feature)
 
 **Services (`src/services/conversations.ts`)**
 
-- [ ] `GET /api/conversations` — list all conversations
-- [ ] `GET /api/conversations/:id` — load messages for a conversation
-- [ ] Uses `useChat` from `@ai-sdk/react` for streaming + message management
+- [ ] `GET /api/conversations` — list all conversations (`useConversations` hook)
+- [ ] `GET /api/conversations/:id` — load full message list (`useConversation(id)` hook)
+- [ ] `POST /api/conversations` — create new conversation with auto-title from first user message (`useCreateConversation` mutation)
+- [ ] `PUT /api/conversations/:id` — save/update messages after AI response finishes (`useUpdateConversation` mutation)
+
+**`chat.tsx` changes**
+
+- [ ] Accept `conversationId` via route param (`useLocalSearchParams`)
+- [ ] On mount: if `conversationId` param exists, fetch conversation and pass `initialMessages` to `useChat`
+- [ ] `saveMessages()` logic — triggered when `status` transitions `streaming → ready` and last message is assistant:
+  - If no `conversationId`: call `createConversation(title)` then `updateConversation({ id, messages })`
+  - If `conversationId` exists: call `updateConversation({ id, messages })`
+  - On error containing `"Message limit reached"`: show limit dialog instead
+- [ ] Track `conversationIdRef` (ref, not state) to avoid stale closure in `saveMessages`
+- [ ] New chat button in header → clears messages + navigates to `/chat` without param
+- [ ] `justCreatedConvId` pattern — after create, skip re-fetching messages (prevents reset of in-progress chat)
+- [ ] Max message warning toasts — after each AI response check count against `MESSAGE_WARNING_THRESHOLDS`; show toast with remaining count + "New Chat" action button
+
+**Conversation List Bottom Sheet**
+
+- [ ] Bottom sheet (or drawer) accessible from a header button (history icon)
+- [ ] List all conversations sorted by `updatedAt` desc
+- [ ] Tap to load conversation → navigate with `?c=id`
+- [ ] Delete conversation swipe action
+- [ ] "New Chat" button at top of the sheet
+
+---
+
+### P3 — Trial / Premium Gating
+
+- [ ] `useTrials` service — `GET /api/trials` (fetch remaining free trials) — only called when user is not premium
+- [ ] `useTrialActions` — `optimisticDecrement()` (locally decrement before API confirms) + `invalidateTrials()` (refetch after AI response)
+- [ ] Call `optimisticDecrement()` before every `sendMessage` call (text, suggestion, action)
+- [ ] Before `sendMessage`: if `!isPremium && freeTrials <= 0` → show upgrade dialog, return early
+- [ ] Before `sendMessage`: if `conversationId && messageCount >= MAX_MESSAGES_PER_CONVERSATION - 2` → show limit dialog, return early
+- [ ] `TrialStatus` header badge — shows "X left" or "Premium" badge in top-right of chat header
+  - Free: pill showing `{freeTrials} left` with warning color when ≤ 2
+  - Premium: crown icon badge
+- [ ] **Upgrade Dialog** — replace current inline error text with a proper modal:
+  - Free plan: `7 messages / day`
+  - Premium: `Unlimited`
+  - "Upgrade Now" button → routes to subscription screen
+  - "Cancel" button
+- [ ] **Conversation Limit Dialog** — modal when max messages reached:
+  - Message explaining limit
+  - "Start New Chat" button
+  - "Cancel" button
+- [ ] Block suggestion chip taps when `freeTrials <= 0` → show upgrade dialog
+
+---
+
+### P4 — ChatInput Missing Features
+
+- [ ] **Voice input (STT)** — mic button is currently decorative; wire up actual speech-to-text:
+  - Use `expo-speech-recognition` or call Sarvam STT API (same as web `useSarvamSTT`)
+  - Mic button: idle → tap to start recording → tap again to stop
+  - On stop: transcribe → set input → auto-submit
+  - Show recording state: animate button + show "Recording..." / "Transcribing..." text
+  - Show `Persona`-equivalent visual animation while recording/processing
+- [ ] **Bill scan / OCR** (Premium only):
+  - Camera button (lock icon overlay for free users → tap shows upgrade prompt)
+  - On tap: launch image picker / camera
+  - Upload image to ImageKit via `/api/imagekit-auth`
+  - On upload success: directly `sendMessage` with `file` part + "Scan this bill" text
+  - Show upload progress state ("Uploading...")
+  - 10 MB file size cap with error toast
+- [ ] **`selectedTransaction` attachment chip**:
+  - When edit/delete swipe action is triggered in `MessageList`, instead of directly calling `sendMessage`, set a `selectedTransaction` state in `chat.tsx`
+  - Render a `TransactionAttachment` strip above the `ChatInput` showing the selected transaction with a remove (×) button
+  - For delete action: show "Send to confirm…" placeholder; send immediately on tap
+  - For edit action: wait for user to type the change instruction, then build prefix + user text
+  - "Clear" button on chip clears `selectedTransaction`
+
+---
+
+### P5 — MessageList Missing Features
+
+- [ ] **`reasoning` parts** — render a collapsible "Thinking..." disclosure for parts with `type === "reasoning"`:
+  - While streaming (`state === "streaming"`): show spinner + "Thinking..."
+  - When done (`state === "done"`): show collapsible with reasoning text
+- [ ] **`file` parts (image)** — when a message part has `type === "file"` and `mediaType` starts with `image/`, render the image in the bubble using `<Image>` (expo-image)
+- [ ] **`tool-saveIncome` error state** — handle `state === "output-error"` and show an error message in the bubble
+
+---
+
+### Services (`src/services/conversations.ts`)
+
+- [ ] `GET /api/conversations`
+- [ ] `GET /api/conversations/:id`
+- [ ] `POST /api/conversations`
+- [ ] `PUT /api/conversations/:id`
+- [ ] `DELETE /api/conversations/:id`
 
 ---
 
@@ -227,6 +331,7 @@
 - [ ] Plan & Usage card: free/premium badge, free trials remaining, subscription dates
 - [ ] Active Sessions card: list devices/sessions, revoke individual sessions
 - [ ] Theme toggle: Light / Dark / System
+- [ ] Report an Issue / Feedback bug reporting feature (similar to web)
 - [ ] Danger Zone: delete account (confirmation dialog + cascade delete)
 - [ ] Sign out button
 
