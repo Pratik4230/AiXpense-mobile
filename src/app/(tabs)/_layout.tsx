@@ -13,9 +13,8 @@ const SPRING_DOWN = { damping: 15, stiffness: 450, mass: 0.5 };
 const SPRING_UP = { damping: 12, stiffness: 200, mass: 0.5 };
 
 const TABS: { name: string; icon: IoniconName; iconFilled: IoniconName }[] = [
-  { name: "index", icon: "home-outline", iconFilled: "home" },
+  { name: "index", icon: "sparkles-outline", iconFilled: "sparkles" },
   { name: "budgets", icon: "wallet-outline", iconFilled: "wallet" },
-  { name: "chat", icon: "sparkles-outline", iconFilled: "sparkles" },
   { name: "reports", icon: "bar-chart-outline", iconFilled: "bar-chart" },
   { name: "profile", icon: "person-outline", iconFilled: "person" },
 ];
@@ -115,6 +114,7 @@ export default function TabsLayout() {
         tabBarButton: (props) => <TabBarButton {...props} isDark={isDark} />,
       }}
     >
+      <Tabs.Screen name="chat" options={{ href: null }} />
       {TABS.map(({ name, icon, iconFilled }) => (
         <Tabs.Screen
           key={name}
