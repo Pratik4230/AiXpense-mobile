@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -34,26 +34,26 @@ export function TransactionFiltersSheet({ filters, onApply, total }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState<TransactionFilters>({ ...filters });
 
-  const handleOpen = useCallback(() => {
+  const handleOpen = () => {
     setDraft({ ...filters });
     setIsOpen(true);
-  }, [filters]);
+  };
 
-  const toggleCategory = useCallback((cat: string) => {
+  const toggleCategory = (cat: string) => {
     setDraft((prev) => ({
       ...prev,
       categories: prev.categories.includes(cat)
         ? prev.categories.filter((c) => c !== cat)
         : [...prev.categories, cat],
     }));
-  }, []);
+  };
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     onApply(draft);
     setIsOpen(false);
-  }, [draft, onApply]);
+  };
 
-  const handleClear = useCallback(() => {
+  const handleClear = () => {
     const cleared: TransactionFilters = {
       type: "all",
       categories: [],
@@ -63,7 +63,7 @@ export function TransactionFiltersSheet({ filters, onApply, total }: Props) {
     setDraft(cleared);
     onApply(cleared);
     setIsOpen(false);
-  }, [onApply]);
+  };
 
   const activeCount =
     (filters.type !== "all" ? 1 : 0) +

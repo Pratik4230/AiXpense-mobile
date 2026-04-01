@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { ScrollView, RefreshControl, View, useColorScheme } from "react-native";
+import { useState } from "react";
+import { ScrollView, RefreshControl, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Tabs, Chip } from "heroui-native";
 import { SafeAreaView } from "@/components/ui";
@@ -29,7 +29,6 @@ const RANGES: { label: string; value: ReportRange }[] = [
 ];
 
 export default function ReportsScreen() {
-  const isDark = useColorScheme() === "dark";
   const router = useRouter();
   const queryClient = useQueryClient();
   const [range, setRange] = useState<ReportRange>("1m");
@@ -47,9 +46,9 @@ export default function ReportsScreen() {
     categories.isRefetching ||
     topExpenses.isRefetching;
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["reports"] });
-  }, [queryClient]);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-background">

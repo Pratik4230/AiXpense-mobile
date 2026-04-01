@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, memo } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -40,7 +40,7 @@ interface RowProps {
   isDark: boolean;
 }
 
-const TransactionRow = memo(function TransactionRow({ tx, isDark }: RowProps) {
+function TransactionRow({ tx, isDark }: RowProps) {
   const isExpense = tx.type === "expense";
   return (
     <View
@@ -99,7 +99,7 @@ const TransactionRow = memo(function TransactionRow({ tx, isDark }: RowProps) {
       </Text>
     </View>
   );
-});
+}
 
 const getItemLayout = (_: unknown, index: number) => ({
   length: ROW_HEIGHT,
@@ -134,32 +134,25 @@ export default function TransactionsScreen() {
     isRefetching,
   } = useTransactions(filters);
 
-  const rows = useMemo(() => data?.pages.flatMap((p) => p.data) ?? [], [data]);
+  const rows = data?.pages.flatMap((p) => p.data) ?? [];
   const total = data?.pages[0]?.total ?? 0;
 
-  const onEndReached = useCallback(() => {
+  const onEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  };
 
-  const renderItem = useCallback(
-    ({ item }: { item: Transaction }) => (
-      <TransactionRow tx={item} isDark={isDark} />
-    ),
-    [isDark],
+  const renderItem = ({ item }: { item: Transaction }) => (
+    <TransactionRow tx={item} isDark={isDark} />
   );
 
-  const ListFooter = useMemo(
-    () =>
-      isFetchingNextPage ? (
-        <View className="py-4 items-center">
-          <ActivityIndicator
-            size="small"
-            color={isDark ? "#f97316" : "#ea580c"}
-          />
-        </View>
-      ) : null,
-    [isFetchingNextPage, isDark],
-  );
+  const ListFooter = isFetchingNextPage ? (
+    <View className="py-4 items-center">
+      <ActivityIndicator
+        size="small"
+        color={isDark ? "#f97316" : "#ea580c"}
+      />
+    </View>
+  ) : null;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
