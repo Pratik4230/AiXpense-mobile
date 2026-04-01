@@ -15,6 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSession, authClient } from "@/lib/authClient";
 import { api } from "@/lib/api";
 import { SafeAreaView } from "@/components/ui";
+import { ReportIssueSheet } from "@/components/profile/ReportIssueSheet";
+import { MyIssuesList } from "@/components/profile/MyIssuesList";
 
 function getInitials(name: string) {
   return name
@@ -24,6 +26,9 @@ function getInitials(name: string) {
     .toUpperCase()
     .slice(0, 2);
 }
+
+const MAX_FREE_TRIALS = 7;
+const WEB_PROFILE_URL = "https://aixpense.in/profile";
 
 export default function ProfileScreen() {
   const { data: session, isPending: sessionLoading } = useSession();
@@ -47,6 +52,9 @@ export default function ProfileScreen() {
   const [pwError, setPwError] = useState("");
   const [pwLoading, setPwLoading] = useState(false);
   const [pwSuccess, setPwSuccess] = useState(false);
+
+  const [showReportSheet, setShowReportSheet] = useState(false);
+  const [showMyIssues, setShowMyIssues] = useState(false);
 
   const handleSaveName = async () => {
     if (!nameValue.trim()) {
@@ -138,9 +146,9 @@ export default function ProfileScreen() {
     );
   }
 
-  const freeTrials = user.freeTrials ?? 0;
   const isPremium = user.isPremium ?? false;
-  const trialPercent = Math.min((freeTrials / 5) * 100, 100);
+  const freeTrials = user.freeTrials ?? 0;
+  const trialPercent = Math.min((freeTrials / MAX_FREE_TRIALS) * 100, 100);
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -235,15 +243,16 @@ export default function ProfileScreen() {
                 {isPremium ? "Premium" : "Free"}
               </Text>
             </View>
+
             {!isPremium && (
               <>
                 <View>
                   <View className="flex-row justify-between mb-2">
                     <Text className="text-sm text-muted">
-                      Free AI trials remaining
+                      Free messages today
                     </Text>
                     <Text className="text-sm font-medium text-foreground">
-                      {freeTrials} / 5
+                      {freeTrials} / {MAX_FREE_TRIALS}
                     </Text>
                   </View>
                   <View className="h-1.5 w-full rounded-full bg-default overflow-hidden">
@@ -253,12 +262,25 @@ export default function ProfileScreen() {
                     />
                   </View>
                 </View>
-                <Button variant="secondary" className="mt-1">
-                  <Ionicons name="sparkles-outline" size={15} color="white" />
-                  <Button.Label>Upgrade to Premium</Button.Label>
-                </Button>
               </>
             )}
+
+            <Pressable
+              onPress={() => WebBrowser.openBrowserAsync(WEB_PROFILE_URL)}
+              className="flex-row items-center justify-between py-2.5 px-3 rounded-xl border border-separator mt-1"
+            >
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="card-outline" size={16} color={accentColor} />
+                <Text className="text-sm font-medium text-foreground">
+                  {isPremium ? "Manage Subscription" : "Upgrade to Premium"}
+                </Text>
+              </View>
+              <Ionicons
+                name="open-outline"
+                size={14}
+                color={mutedColor}
+              />
+            </Pressable>
           </Card.Body>
         </Card>
 
@@ -332,6 +354,41 @@ export default function ProfileScreen() {
         </Card>
 
         <Card className="mb-4">
+          <Card.Body className="gap-3">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <Ionicons name="bug-outline" size={16} color={mutedColor} />
+                <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
+                  My Reports
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setShowReportSheet(true)}
+                  className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-lg border border-separator"
+                >
+                  <Ionicons name="flag-outline" size={13} color={accentColor} />
+                  <Text
+                    className="text-xs font-medium"
+                    style={{ color: accentColor }}
+                  >
+                    New Report
+                  </Text>
+                </Pressable>
+                <Pressable onPress={() => setShowMyIssues((v) => !v)}>
+                  <Ionicons
+                    name={showMyIssues ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={mutedColor}
+                  />
+                </Pressable>
+              </View>
+            </View>
+            {showMyIssues && <MyIssuesList />}
+          </Card.Body>
+        </Card>
+
+        <Card className="mb-4">
           <Card.Body>
             <Button variant="outline" onPress={handleSignOut}>
               <Ionicons name="log-out-outline" size={16} color={mutedColor} />
@@ -391,6 +448,11 @@ export default function ProfileScreen() {
           </Card.Body>
         </Card>
       </ScrollView>
+
+      <ReportIssueSheet
+        isOpen={showReportSheet}
+        onOpenChange={setShowReportSheet}
+      />
     </SafeAreaView>
   );
 }
