@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
-import { View, Pressable, Text, TextInput } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View, Pressable, Text, TextInput, useColorScheme } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -13,9 +12,12 @@ import {
   Label,
   FieldError,
   Separator,
+  useThemeColor,
 } from "heroui-native";
-import { SafeAreaView } from "@/components/ui";
 import { authClient } from "@/lib/authClient";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
+import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
 
 const schema = z.object({
   email: z.email("Invalid email address"),
@@ -32,6 +34,12 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [verifying, setVerifying] = useState(false);
   const otpInputs = useRef<(TextInput | null)[]>([]);
+  const isDark = useColorScheme() === "dark";
+  const [mutedColor, accentColor, borderColor] = useThemeColor([
+    "muted",
+    "accent",
+    "separator",
+  ]);
 
   const {
     control,
@@ -122,160 +130,152 @@ export default function LoginScreen() {
   const otpCode = otp.join("");
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAwareScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          paddingHorizontal: 24,
-          paddingVertical: 40,
-        }}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={16}
-      >
-        <View className="mb-10">
-          <Text className="text-3xl font-bold text-foreground mb-1">
-            Welcome back
-          </Text>
-          <Text className="text-sm text-muted">
-            Sign in to your AiXpense account
-          </Text>
-        </View>
+    <AuthShell centered>
+      <AuthBrandHeader
+        title="Welcome back"
+        subtitle="Sign in to sync expenses, budgets, and AI chat across your devices."
+      />
 
-        <View className="gap-4">
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, value } }) => (
-              <TextField isInvalid={!!errors.email}>
-                <Label>Email</Label>
+      <AuthFormSurface>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextField isInvalid={!!errors.email}>
+              <Label>Email</Label>
+              <Input
+                placeholder="you@example.com"
+                value={value}
+                onChangeText={onChange}
+                keyboardType="email-address"
+                autoComplete="email"
+                autoCapitalize="none"
+              />
+              <FieldError>{errors.email?.message}</FieldError>
+            </TextField>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <TextField isInvalid={!!errors.password}>
+              <Label>Password</Label>
+              <View className="relative">
                 <Input
-                  placeholder="you@example.com"
+                  placeholder="••••••••"
                   value={value}
                   onChangeText={onChange}
-                  keyboardType="email-address"
-                  autoComplete="email"
+                  secureTextEntry={!showPassword}
+                  autoComplete="current-password"
                 />
-                <FieldError>{errors.email?.message}</FieldError>
-              </TextField>
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { onChange, value } }) => (
-              <TextField isInvalid={!!errors.password}>
-                <Label>Password</Label>
-                <View className="relative">
-                  <Input
-                    placeholder="••••••••"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry={!showPassword}
-                    autoComplete="current-password"
+                <Pressable
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-0 bottom-0 justify-center"
+                  hitSlop={8}
+                  accessibilityLabel={
+                    showPassword ? "Hide password" : "Show password"
+                  }
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color={mutedColor}
                   />
-                  <Pressable
-                    onPress={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-0 bottom-0 justify-center"
-                    hitSlop={8}
-                  >
-                    <Ionicons
-                      name={showPassword ? "eye-off" : "eye"}
-                      size={18}
-                      color="#9ca3af"
-                    />
-                  </Pressable>
-                </View>
-                <FieldError>{errors.password?.message}</FieldError>
-              </TextField>
-            )}
-          />
-
-          <Pressable
-            onPress={() => router.push("/(auth)/forgot-password")}
-            className="self-end"
-          >
-            <Text className="text-xs text-accent">Forgot password?</Text>
-          </Pressable>
-
-          {needsVerification && (
-            <View className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 gap-3">
-              <Text className="text-sm font-medium text-foreground">
-                Email not verified
-              </Text>
-              {otpSent ? (
-                <View className="gap-3">
-                  <Text className="text-xs text-muted">
-                    Enter the 6-digit code sent to your email
-                  </Text>
-                  {error ? (
-                    <Text className="text-xs text-danger">{error}</Text>
-                  ) : null}
-                  <View className="flex-row justify-between gap-2">
-                    {otp.map((digit, i) => (
-                      <TextInput
-                        key={i}
-                        ref={(ref) => {
-                          otpInputs.current[i] = ref;
-                        }}
-                        value={digit}
-                        onChangeText={(v) => handleOtpChange(v, i)}
-                        onKeyPress={({ nativeEvent }) =>
-                          handleOtpKeyPress(nativeEvent.key, i)
-                        }
-                        keyboardType="number-pad"
-                        maxLength={1}
-                        className="flex-1 h-12 rounded-lg bg-card text-center text-xl font-bold text-foreground"
-                        style={{
-                          fontSize: 20,
-                          borderWidth: 2,
-                          borderColor: "#71717a",
-                        }}
-                        cursorColor="#f97316"
-                      />
-                    ))}
-                  </View>
-                  <Button
-                    onPress={handleVerifyAndSignIn}
-                    isDisabled={verifying || otpCode.length !== 6}
-                    size="sm"
-                  >
-                    {verifying ? "Verifying..." : "Verify & Sign In"}
-                  </Button>
-                </View>
-              ) : (
-                <Button onPress={handleSendOtp} variant="outline" size="sm">
-                  Send verification code
-                </Button>
-              )}
-            </View>
+                </Pressable>
+              </View>
+              <FieldError>{errors.password?.message}</FieldError>
+            </TextField>
           )}
+        />
 
-          {error && !needsVerification ? (
-            <Text className="text-xs text-danger">{error}</Text>
-          ) : null}
-
-          <Button
-            onPress={handleSubmit(onSubmit)}
-            isDisabled={isSubmitting}
-            className="mt-2"
-          >
-            {isSubmitting ? "Signing in..." : "Sign In"}
-          </Button>
-        </View>
-
-        <Separator className="my-8" />
-
-        <View className="flex-row justify-center gap-1">
-          <Text className="text-sm text-muted">
-            Don&apos;t have an account?
+        <Pressable
+          onPress={() => router.push("/(auth)/forgot-password")}
+          className="self-end -mt-1"
+          hitSlop={8}
+        >
+          <Text className="text-sm font-medium text-accent">
+            Forgot password?
           </Text>
-          <Pressable onPress={() => router.push("/(auth)/signup")}>
-            <Text className="text-sm font-semibold text-accent">Sign up</Text>
-          </Pressable>
-        </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+        </Pressable>
+
+        {needsVerification && (
+          <View className="rounded-2xl border border-warning/35 bg-warning/10 p-4 gap-3">
+            <Text className="text-sm font-semibold text-foreground">
+              Email not verified
+            </Text>
+            {otpSent ? (
+              <View className="gap-3">
+                <Text className="text-xs text-muted leading-relaxed">
+                  Enter the 6-digit code sent to your email
+                </Text>
+                {error ? (
+                  <Text className="text-xs text-danger">{error}</Text>
+                ) : null}
+                <View className="flex-row justify-between gap-2">
+                  {otp.map((digit, i) => (
+                    <TextInput
+                      key={i}
+                      ref={(ref) => {
+                        otpInputs.current[i] = ref;
+                      }}
+                      value={digit}
+                      onChangeText={(v) => handleOtpChange(v, i)}
+                      onKeyPress={({ nativeEvent }) =>
+                        handleOtpKeyPress(nativeEvent.key, i)
+                      }
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      className="flex-1 h-12 rounded-xl bg-default text-center text-lg font-semibold text-foreground"
+                      style={{
+                        fontSize: 18,
+                        borderWidth: 1.5,
+                        borderColor: isDark
+                          ? "rgba(255,255,255,0.12)"
+                          : borderColor,
+                      }}
+                      cursorColor={accentColor}
+                    />
+                  ))}
+                </View>
+                <Button
+                  onPress={handleVerifyAndSignIn}
+                  isDisabled={verifying || otpCode.length !== 6}
+                  size="sm"
+                >
+                  {verifying ? "Verifying..." : "Verify & sign in"}
+                </Button>
+              </View>
+            ) : (
+              <Button onPress={handleSendOtp} variant="outline" size="sm">
+                Send verification code
+              </Button>
+            )}
+          </View>
+        )}
+
+        {error && !needsVerification ? (
+          <Text className="text-xs text-danger">{error}</Text>
+        ) : null}
+
+        <Button
+          onPress={handleSubmit(onSubmit)}
+          isDisabled={isSubmitting}
+          className="mt-1"
+        >
+          {isSubmitting ? "Signing in..." : "Sign in"}
+        </Button>
+      </AuthFormSurface>
+
+      <Separator className="my-8 opacity-60" />
+
+      <View className="flex-row justify-center gap-1.5 flex-wrap">
+        <Text className="text-sm text-muted">New to AiXpense?</Text>
+        <Pressable onPress={() => router.push("/(auth)/signup")} hitSlop={8}>
+          <Text className="text-sm font-semibold text-accent">Create account</Text>
+        </Pressable>
+      </View>
+    </AuthShell>
   );
 }

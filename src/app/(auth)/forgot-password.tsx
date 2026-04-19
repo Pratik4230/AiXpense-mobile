@@ -1,13 +1,14 @@
 import { useState, useRef } from "react";
-import { View, Pressable, Text, TextInput } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View, Pressable, Text, TextInput, useColorScheme } from "react-native";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, TextField, Input, Label, FieldError } from "heroui-native";
-import { SafeAreaView } from "@/components/ui";
+import { Button, TextField, Input, Label, FieldError, useThemeColor } from "heroui-native";
 import { authClient } from "@/lib/authClient";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
+import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
 
 const emailSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -32,6 +33,8 @@ export default function ForgotPasswordScreen() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const inputs = useRef<(TextInput | null)[]>([]);
+  const isDark = useColorScheme() === "dark";
+  const [accentColor, borderColor] = useThemeColor(["accent", "separator"]);
 
   const emailForm = useForm<EmailData>({
     resolver: zodResolver(emailSchema),
@@ -119,133 +122,98 @@ export default function ForgotPasswordScreen() {
 
   if (step === "done") {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-6 gap-6">
-          <Text className="text-3xl font-bold text-foreground">
+      <AuthShell centered>
+        <View className="items-center gap-2 mb-8">
+          <Text className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+            AiXpense
+          </Text>
+          <Text className="text-[28px] font-bold text-foreground text-center tracking-tight">
             Password updated
           </Text>
-          <Text className="text-sm text-muted text-center">
-            Your password has been reset. You can now sign in.
+          <Text className="text-[15px] text-muted text-center leading-relaxed px-2">
+            You can sign in with your new password.
           </Text>
-          <Button
-            onPress={() => router.replace("/(auth)/login")}
-            className="w-full mt-4"
-          >
-            Sign In
-          </Button>
         </View>
-      </SafeAreaView>
+        <Button onPress={() => router.replace("/(auth)/login")} className="w-full">
+          Sign in
+        </Button>
+      </AuthShell>
     );
   }
 
   if (step === "reset") {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <KeyboardAwareScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 24,
-            paddingVertical: 40,
-          }}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={16}
-        >
-          <View className="mb-10">
-            <Text className="text-3xl font-bold text-foreground mb-1">
-              New password
-            </Text>
-            <Text className="text-sm text-muted">
-              Enter your new password below
-            </Text>
-          </View>
-
-          <View className="gap-4">
-            <Controller
-              control={passwordForm.control}
-              name="password"
-              render={({ field: { onChange, value } }) => (
-                <TextField isInvalid={!!passwordForm.formState.errors.password}>
-                  <Label>New Password</Label>
-                  <Input
-                    placeholder="••••••••"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry
-                    autoComplete="new-password"
-                  />
-                  <FieldError>
-                    {passwordForm.formState.errors.password?.message}
-                  </FieldError>
-                </TextField>
-              )}
-            />
-            <Controller
-              control={passwordForm.control}
-              name="confirmPassword"
-              render={({ field: { onChange, value } }) => (
-                <TextField
-                  isInvalid={!!passwordForm.formState.errors.confirmPassword}
-                >
-                  <Label>Confirm Password</Label>
-                  <Input
-                    placeholder="••••••••"
-                    value={value}
-                    onChangeText={onChange}
-                    secureTextEntry
-                  />
-                  <FieldError>
-                    {passwordForm.formState.errors.confirmPassword?.message}
-                  </FieldError>
-                </TextField>
-              )}
-            />
-            {error ? (
-              <Text className="text-xs text-danger">{error}</Text>
-            ) : null}
-            <Button
-              onPress={passwordForm.handleSubmit(handleResetPassword)}
-              isDisabled={passwordForm.formState.isSubmitting}
-              className="mt-2"
-            >
-              {passwordForm.formState.isSubmitting
-                ? "Resetting..."
-                : "Reset Password"}
-            </Button>
-          </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
+      <AuthShell showBack onBack={() => setStep("otp")}>
+        <AuthBrandHeader
+          title="Choose a new password"
+          subtitle="Use at least 8 characters you haven&apos;t used here before."
+        />
+        <AuthFormSurface>
+          <Controller
+            control={passwordForm.control}
+            name="password"
+            render={({ field: { onChange, value } }) => (
+              <TextField isInvalid={!!passwordForm.formState.errors.password}>
+                <Label>New password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                  autoComplete="new-password"
+                />
+                <FieldError>
+                  {passwordForm.formState.errors.password?.message}
+                </FieldError>
+              </TextField>
+            )}
+          />
+          <Controller
+            control={passwordForm.control}
+            name="confirmPassword"
+            render={({ field: { onChange, value } }) => (
+              <TextField
+                isInvalid={!!passwordForm.formState.errors.confirmPassword}
+              >
+                <Label>Confirm password</Label>
+                <Input
+                  placeholder="••••••••"
+                  value={value}
+                  onChangeText={onChange}
+                  secureTextEntry
+                />
+                <FieldError>
+                  {passwordForm.formState.errors.confirmPassword?.message}
+                </FieldError>
+              </TextField>
+            )}
+          />
+          {error ? (
+            <Text className="text-xs text-danger">{error}</Text>
+          ) : null}
+          <Button
+            onPress={passwordForm.handleSubmit(handleResetPassword)}
+            isDisabled={passwordForm.formState.isSubmitting}
+            className="mt-1"
+          >
+            {passwordForm.formState.isSubmitting
+              ? "Saving..."
+              : "Update password"}
+          </Button>
+        </AuthFormSurface>
+      </AuthShell>
     );
   }
 
   if (step === "otp") {
     return (
-      <SafeAreaView className="flex-1 bg-background">
-        <KeyboardAwareScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 24,
-            paddingVertical: 40,
-          }}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={16}
-        >
-          <Pressable onPress={() => setStep("email")} className="mb-8">
-            <Text className="text-sm font-semibold text-accent">← Back</Text>
-          </Pressable>
-
-          <View className="mb-10">
-            <Text className="text-3xl font-bold text-foreground mb-1">
-              Enter code
-            </Text>
-            <Text className="text-sm text-muted">
-              Enter the 6-digit code sent to{"\n"}
-              <Text className="font-semibold text-foreground">{email}</Text>
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between gap-2 mb-6">
+      <AuthShell showBack onBack={() => setStep("email")}>
+        <AuthBrandHeader
+          title="Enter the code"
+          subtitle={`We sent a 6-digit code to ${email}.`}
+        />
+        <AuthFormSurface>
+          <View className="flex-row justify-between gap-2">
             {otp.map((digit, i) => (
               <TextInput
                 key={i}
@@ -259,97 +227,74 @@ export default function ForgotPasswordScreen() {
                 }
                 keyboardType="number-pad"
                 maxLength={1}
-                className="flex-1 h-14 rounded-xl bg-card text-center text-2xl font-bold text-foreground"
-                style={{ fontSize: 24, borderWidth: 2, borderColor: "#71717a" }}
-                cursorColor="#f97316"
+                className="flex-1 h-[52px] rounded-2xl bg-default text-center text-2xl font-semibold text-foreground"
+                style={{
+                  fontSize: 22,
+                  borderWidth: 1.5,
+                  borderColor: isDark ? "rgba(255,255,255,0.12)" : borderColor,
+                }}
+                cursorColor={accentColor}
               />
             ))}
           </View>
 
           {error ? (
-            <Text className="text-xs text-danger mb-4">{error}</Text>
+            <Text className="text-xs text-danger">{error}</Text>
           ) : null}
 
-          <Button
-            onPress={handleVerifyOtp}
-            isDisabled={code.length !== 6}
-            className="mb-4"
-          >
-            Verify Code
+          <Button onPress={handleVerifyOtp} isDisabled={code.length !== 6}>
+            Verify code
           </Button>
 
-          <View className="flex-row justify-center gap-1">
-            <Text className="text-sm text-muted">
-              Didn&apos;t receive the code?
-            </Text>
+          <View className="flex-row justify-center gap-1 pt-1">
+            <Text className="text-sm text-muted">Didn&apos;t get it?</Text>
             <Pressable onPress={handleResend}>
               <Text className="text-sm font-semibold text-accent">Resend</Text>
             </Pressable>
           </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
+        </AuthFormSurface>
+      </AuthShell>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAwareScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          paddingHorizontal: 24,
-          paddingVertical: 40,
-        }}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={16}
-      >
-        <Pressable onPress={() => router.back()} className="mb-8">
-          <Text className="text-sm font-semibold text-accent">← Back</Text>
-        </Pressable>
+    <AuthShell showBack onBack={() => router.back()}>
+      <AuthBrandHeader
+        title="Reset password"
+        subtitle="We&apos;ll email you a short code to confirm it&apos;s you."
+      />
+      <AuthFormSurface>
+        <Controller
+          control={emailForm.control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextField isInvalid={!!emailForm.formState.errors.email}>
+              <Label>Email</Label>
+              <Input
+                placeholder="you@example.com"
+                value={value}
+                onChangeText={onChange}
+                keyboardType="email-address"
+                autoComplete="email"
+                autoCapitalize="none"
+              />
+              <FieldError>
+                {emailForm.formState.errors.email?.message}
+              </FieldError>
+            </TextField>
+          )}
+        />
 
-        <View className="mb-10">
-          <Text className="text-3xl font-bold text-foreground mb-1">
-            Forgot password?
-          </Text>
-          <Text className="text-sm text-muted">
-            Enter your email and we&apos;ll send you a reset code
-          </Text>
-        </View>
+        {error ? <Text className="text-xs text-danger">{error}</Text> : null}
 
-        <View className="gap-4">
-          <Controller
-            control={emailForm.control}
-            name="email"
-            render={({ field: { onChange, value } }) => (
-              <TextField isInvalid={!!emailForm.formState.errors.email}>
-                <Label>Email</Label>
-                <Input
-                  placeholder="you@example.com"
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
-                <FieldError>
-                  {emailForm.formState.errors.email?.message}
-                </FieldError>
-              </TextField>
-            )}
-          />
-
-          {error ? <Text className="text-xs text-danger">{error}</Text> : null}
-
-          <Button
-            onPress={emailForm.handleSubmit(handleSendOtp)}
-            isDisabled={emailForm.formState.isSubmitting}
-            className="mt-2"
-          >
-            {emailForm.formState.isSubmitting
-              ? "Sending..."
-              : "Send Reset Code"}
-          </Button>
-        </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+        <Button
+          onPress={emailForm.handleSubmit(handleSendOtp)}
+          isDisabled={emailForm.formState.isSubmitting}
+          className="mt-1"
+        >
+          {emailForm.formState.isSubmitting ? "Sending..." : "Send code"}
+        </Button>
+      </AuthFormSurface>
+    </AuthShell>
   );
 }

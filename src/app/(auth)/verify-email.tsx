@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { View, Text, TextInput, Pressable, useColorScheme } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Button } from "heroui-native";
-import { SafeAreaView } from "@/components/ui";
+import { Button, useThemeColor } from "heroui-native";
 import { authClient, signIn } from "@/lib/authClient";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
+import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
 
 export default function VerifyEmailScreen() {
   const { email, password } = useLocalSearchParams<{
@@ -66,9 +67,15 @@ export default function VerifyEmailScreen() {
     }
 
     if (password) {
-      await signIn.email({ email, password });
+      const signedIn = await signIn.email({ email, password });
+      if (!signedIn.error) {
+        router.replace("/(tabs)");
+        setIsLoading(false);
+        return;
+      }
     }
     router.replace("/(auth)/login");
+    setIsLoading(false);
   };
 
   const handleResend = async () => {
@@ -80,33 +87,18 @@ export default function VerifyEmailScreen() {
     });
   };
 
+  const isDark = useColorScheme() === "dark";
+  const [accentColor, borderColor] = useThemeColor(["accent", "separator"]);
+
   return (
-    <SafeAreaView className="flex-1 bg-background">
-      <KeyboardAwareScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          paddingHorizontal: 24,
-          paddingVertical: 40,
-        }}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={16}
-      >
-        <Pressable onPress={() => router.back()} className="mb-8">
-          <Text className="text-sm font-semibold text-accent">← Back</Text>
-        </Pressable>
+    <AuthShell showBack onBack={() => router.back()}>
+      <AuthBrandHeader
+        title="Verify your email"
+        subtitle={`Enter the 6-digit code we sent to ${email ?? "your inbox"}.`}
+      />
 
-        <View className="mb-10">
-          <Text className="text-3xl font-bold text-foreground mb-1">
-            Verify your email
-          </Text>
-          <Text className="text-sm text-muted">
-            Enter the 6-digit code sent to{"\n"}
-            <Text className="font-semibold text-foreground">{email}</Text>
-          </Text>
-        </View>
-
-        <View className="flex-row justify-between gap-2 mb-6">
+      <AuthFormSurface>
+        <View className="flex-row justify-between gap-2">
           {otp.map((digit, i) => (
             <TextInput
               key={i}
@@ -120,26 +112,29 @@ export default function VerifyEmailScreen() {
               }
               keyboardType="number-pad"
               maxLength={1}
-              className="flex-1 h-14 rounded-xl bg-card text-center text-2xl font-bold text-foreground"
-              style={{ fontSize: 24, borderWidth: 2, borderColor: "#71717a" }}
-              cursorColor="#f97316"
+              className="flex-1 h-[52px] rounded-2xl bg-default text-center text-2xl font-semibold text-foreground"
+              style={{
+                fontSize: 22,
+                borderWidth: 1.5,
+                borderColor: isDark ? "rgba(255,255,255,0.12)" : borderColor,
+              }}
+              cursorColor={accentColor}
             />
           ))}
         </View>
 
         {error ? (
-          <Text className="text-xs text-danger mb-4">{error}</Text>
+          <Text className="text-xs text-danger">{error}</Text>
         ) : null}
 
         <Button
           onPress={handleVerify}
           isDisabled={isLoading || code.length !== 6}
-          className="mb-4"
         >
-          {isLoading ? "Verifying..." : "Verify Email"}
+          {isLoading ? "Verifying..." : "Verify email"}
         </Button>
 
-        <View className="flex-row justify-center gap-1">
+        <View className="flex-row justify-center gap-1 pt-1">
           <Text className="text-sm text-muted">
             Didn&apos;t receive the code?
           </Text>
@@ -147,7 +142,7 @@ export default function VerifyEmailScreen() {
             <Text className="text-sm font-semibold text-accent">Resend</Text>
           </Pressable>
         </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+      </AuthFormSurface>
+    </AuthShell>
   );
 }
