@@ -1,68 +1,125 @@
+import { useEffect, type ReactNode } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme, Pressable, View, StyleSheet } from "react-native";
+import type { PressableProps, StyleProp, ViewStyle } from "react-native";
+import {
+  Pressable,
+  View,
+  StyleSheet,
+  Platform,
+  useColorScheme,
+} from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  interpolate,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
+import { useThemeColor } from "heroui-native";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
-const SPRING_DOWN = { damping: 15, stiffness: 450, mass: 0.5 };
-const SPRING_UP = { damping: 12, stiffness: 200, mass: 0.5 };
+const SPRING_DOWN = { damping: 16, stiffness: 520, mass: 0.45 };
+const SPRING_UP = { damping: 14, stiffness: 280, mass: 0.5 };
 
-const TABS: { name: string; icon: IoniconName; iconFilled: IoniconName }[] = [
-  { name: "index", icon: "sparkles-outline", iconFilled: "sparkles" },
-  { name: "budgets", icon: "wallet-outline", iconFilled: "wallet" },
-  { name: "reports", icon: "bar-chart-outline", iconFilled: "bar-chart" },
-  { name: "profile", icon: "person-outline", iconFilled: "person" },
+const TABS: {
+  name: string;
+  title: string;
+  icon: IoniconName;
+  iconFilled: IoniconName;
+}[] = [
+  {
+    name: "index",
+    title: "Chat",
+    icon: "sparkles-outline",
+    iconFilled: "sparkles",
+  },
+  {
+    name: "budgets",
+    title: "Budgets",
+    icon: "wallet-outline",
+    iconFilled: "wallet",
+  },
+  {
+    name: "reports",
+    title: "Reports",
+    icon: "bar-chart-outline",
+    iconFilled: "bar-chart",
+  },
+  {
+    name: "profile",
+    title: "Profile",
+    icon: "person-outline",
+    iconFilled: "person",
+  },
 ];
+
+type TabBarButtonProps = Omit<PressableProps, "children"> & {
+  accentSoft: string;
+  children: ReactNode;
+};
 
 function TabBarButton({
   children,
   onPress,
   onLongPress,
   accessibilityState,
-  isDark,
-}: {
-  children: React.ReactNode;
-  onPress?: (e: any) => void;
-  onLongPress?: ((e: any) => void) | null;
-  accessibilityState?: { selected?: boolean };
-  isDark: boolean;
-  [key: string]: any;
-}) {
+  accentSoft,
+  style,
+  ...pressableRest
+}: TabBarButtonProps) {
   const scale = useSharedValue(1);
   const focused = accessibilityState?.selected ?? false;
+  const selected = useSharedValue(focused ? 1 : 0);
+
+  useEffect(() => {
+    selected.value = withSpring(focused ? 1 : 0, SPRING_UP);
+  }, [focused, selected]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
+  const pillStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(selected.value, [0, 1], [0, 1]),
+    transform: [{ scale: interpolate(selected.value, [0, 1], [0.85, 1]) }],
+  }));
+
+  const handlePress: NonNullable<PressableProps["onPress"]> = (e) => {
+    void Haptics.selectionAsync();
+    onPress?.(e);
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      {...pressableRest}
+      onPress={handlePress}
       onLongPress={onLongPress}
       onPressIn={() => {
-        scale.value = withSpring(0.8, SPRING_DOWN);
+        scale.value = withSpring(0.92, SPRING_DOWN);
       }}
       onPressOut={() => {
         scale.value = withSpring(1, SPRING_UP);
       }}
-      style={styles.tabButton}
+      style={[styles.tabButton, style as StyleProp<ViewStyle>]}
+      accessibilityRole="tab"
+      accessibilityState={accessibilityState}
     >
-      <Animated.View style={[styles.tabButtonInner, animatedStyle]}>
-        {focused && (
-          <View
-            style={[
-              styles.activeDot,
-              { backgroundColor: isDark ? "#f97316" : "#ea580c" },
-            ]}
-          />
-        )}
-        {children}
-      </Animated.View>
+      <View style={styles.tabButtonInner}>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.activePill,
+            { backgroundColor: accentSoft },
+            pillStyle,
+          ]}
+        />
+        <Animated.View style={[styles.iconWrap, animatedStyle]}>
+          {children}
+        </Animated.View>
+      </View>
     </Pressable>
   );
 }
@@ -76,54 +133,80 @@ const styles = StyleSheet.create({
   tabButtonInner: {
     alignItems: "center",
     justifyContent: "center",
+    width: 56,
+    height: 44,
+  },
+  activePill: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 14,
+    marginHorizontal: 2,
+    marginVertical: 4,
+  },
+  iconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
     width: 48,
     height: 40,
-  },
-  activeDot: {
-    position: "absolute",
-    bottom: -4,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
   },
 });
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 10);
+  const tabBarHeight = 52 + bottomPad;
+
+  const [accentColor, mutedColor, backgroundColor, separatorColor] =
+    useThemeColor(["accent", "muted", "background", "separator"]);
+
+  const accentSoft = isDark ? "rgba(249, 115, 22, 0.16)" : "rgba(234, 88, 12, 0.12)";
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        tabBarActiveTintColor: accentColor,
+        tabBarInactiveTintColor: mutedColor,
         tabBarStyle: {
-          backgroundColor: isDark ? "#000000" : "#ffffff",
-          borderTopWidth: 1,
-          borderTopColor: isDark
-            ? "rgba(249, 115, 22, 0.35)"
-            : "rgba(234, 88, 12, 0.15)",
+          backgroundColor: backgroundColor,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: separatorColor,
+          height: tabBarHeight,
+          paddingTop: 6,
+          paddingBottom: bottomPad,
+          paddingHorizontal: 4,
           elevation: 0,
-          shadowOpacity: 0,
-          height: 56,
-          paddingTop: 8,
-          paddingBottom: 28,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: isDark ? 0.35 : 0.06,
+              shadowRadius: 6,
+            },
+            default: {},
+          }),
         },
-        tabBarActiveTintColor: isDark ? "#f97316" : "#ea580c",
-        tabBarInactiveTintColor: isDark ? "#52525b" : "#a1a1aa",
-        tabBarButton: (props) => <TabBarButton {...props} isDark={isDark} />,
+        tabBarItemStyle: {
+          paddingVertical: 0,
+        },
+        tabBarButton: (props) => (
+          <TabBarButton {...props} accentSoft={accentSoft} />
+        ),
       }}
     >
-      <Tabs.Screen name="chat" options={{ href: null }} />
-      {TABS.map(({ name, icon, iconFilled }) => (
+      {TABS.map(({ name, title, icon, iconFilled }) => (
         <Tabs.Screen
           key={name}
           name={name}
           options={{
-            tabBarIcon: ({ color, size, focused }) => (
+            title,
+            tabBarAccessibilityLabel: title,
+            tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? iconFilled : icon}
-                size={26}
+                size={focused ? 25 : 24}
                 color={color}
               />
             ),

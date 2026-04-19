@@ -5,12 +5,14 @@ import {
   useWindowDimensions,
   useColorScheme,
   Pressable,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Chip, BottomSheet } from "heroui-native";
 import { ToolLoading } from "./ToolLoading";
 import { useState } from "react";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 
 interface ChatMessage {
   id: string;
@@ -665,16 +667,56 @@ function MessageBubble({
   setActionTarget: (target: ActionTarget) => void;
   outdatedIds: Map<string, string>;
 }) {
+  const { width: windowWidth } = useWindowDimensions();
   const isUser = message.role === "user";
-  const toolParts = message.parts?.filter((p) => p.type !== "text") ?? [];
   const textParts = message.parts?.filter((p) => p.type === "text") ?? [];
+  const imageFileParts =
+    message.parts?.filter(
+      (p) =>
+        p.type === "file" &&
+        typeof p.mediaType === "string" &&
+        p.mediaType.startsWith("image/") &&
+        typeof p.url === "string",
+    ) ?? [];
+  const toolParts =
+    message.parts?.filter((p) => p.type !== "text" && p.type !== "file") ?? [];
   const hasTools = toolParts.length > 0;
+  const receiptThumbW = Math.min(windowWidth * 0.72, 280);
 
   return (
     <View
       className={`mb-4 ${isUser ? "items-end" : "items-start"}`}
       style={{ maxWidth: "88%", alignSelf: isUser ? "flex-end" : "flex-start" }}
     >
+      {isUser && imageFileParts.length > 0 && (
+        <View
+          style={{
+            gap: 8,
+            marginBottom: textParts.some((p) => p.text?.trim()) ? 8 : 0,
+            maxWidth: "100%",
+          }}
+        >
+          {imageFileParts.map((part, i) => (
+            <View
+              key={`${message.id}-img-${i}`}
+              style={{
+                borderRadius: 16,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+              }}
+            >
+              <Image
+                source={{ uri: part.url }}
+                style={{ width: receiptThumbW, height: receiptThumbW * 1.15 }}
+                contentFit="cover"
+                accessibilityLabel="Uploaded receipt"
+              />
+            </View>
+          ))}
+        </View>
+      )}
+
       {!isUser && hasTools && (
         <View
           style={{
@@ -692,26 +734,41 @@ function MessageBubble({
       {textParts.length > 0 && textParts.some((p) => p.text?.trim()) && (
         <View
           style={{
-            borderRadius: 18,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
+            borderRadius: 20,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
             backgroundColor: isUser
               ? isDark
                 ? "#ea580c"
                 : "#f97316"
               : isDark
                 ? "#27272a"
-                : "#f3f4f6",
-            borderBottomRightRadius: isUser ? 4 : 18,
-            borderBottomLeftRadius: isUser ? 18 : 4,
+                : "#fafafa",
+            borderBottomRightRadius: isUser ? 5 : 20,
+            borderBottomLeftRadius: isUser ? 20 : 5,
+            borderWidth: isUser ? 0 : isDark ? 0 : 1,
+            borderColor: isUser
+              ? "transparent"
+              : isDark
+                ? "transparent"
+                : "rgba(0,0,0,0.06)",
+            ...(isUser && Platform.OS === "ios"
+              ? {
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDark ? 0.35 : 0.15,
+                  shadowRadius: 6,
+                }
+              : {}),
+            ...(isUser && Platform.OS === "android" ? { elevation: 3 } : {}),
           }}
         >
           {textParts.map((part, i) => (
             <Text
               key={`${message.id}-text-${i}`}
               style={{
-                fontSize: 15,
-                lineHeight: 22,
+                fontSize: 16,
+                lineHeight: 24,
                 color: isUser ? "#fff" : isDark ? "#e4e4e7" : "#1f2937",
               }}
             >
@@ -765,11 +822,13 @@ export function MessageList({ messages, isStreaming, onEdit, onDelete, outdatedI
               <View style={{ alignSelf: "flex-start", marginBottom: 16 }}>
                 <View
                   style={{
-                    borderRadius: 18,
-                    borderBottomLeftRadius: 4,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    backgroundColor: isDark ? "#27272a" : "#f3f4f6",
+                    borderRadius: 20,
+                    borderBottomLeftRadius: 5,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    backgroundColor: isDark ? "#27272a" : "#fafafa",
+                    borderWidth: isDark ? 0 : 1,
+                    borderColor: "rgba(0,0,0,0.06)",
                   }}
                 >
                   <ToolLoading type="thinking" />
@@ -788,9 +847,10 @@ export function MessageList({ messages, isStreaming, onEdit, onDelete, outdatedI
         }}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingBottom: 16,
-          paddingTop: 8,
+          flexGrow: 1,
+          paddingHorizontal: 18,
+          paddingBottom: 20,
+          paddingTop: 12,
         }}
         showsVerticalScrollIndicator={false}
       />
