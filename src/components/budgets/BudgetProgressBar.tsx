@@ -19,8 +19,8 @@ export function BudgetProgressBar({ spent, amount }: Props) {
       : "bg-accent";
 
   return (
-    <View className="gap-2">
-      <View className="h-1.5 w-full rounded-full bg-default overflow-hidden">
+    <View className="gap-2.5">
+      <View className="h-2 w-full rounded-full bg-default overflow-hidden">
         <View
           className={`h-full rounded-full ${barColor}`}
           style={{ width: `${percent}%` }}

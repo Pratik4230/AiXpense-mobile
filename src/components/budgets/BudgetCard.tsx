@@ -60,11 +60,11 @@ export function BudgetCard({ budget, existingCategories }: Props) {
 
   return (
     <>
-      <Card className="gap-0 overflow-hidden">
-        <Card.Header className="flex-row items-center justify-between py-3 px-4">
+      <Card className="gap-0 overflow-hidden rounded-3xl border border-separator">
+        <Card.Header className="flex-row items-center justify-between py-3.5 px-4 border-b border-separator/60">
           <View className="flex-row items-center gap-3">
-            <View className="size-10 rounded-xl bg-accent-soft items-center justify-center">
-              <Ionicons name={iconName} size={20} color={accentColor} />
+            <View className="size-11 rounded-2xl bg-accent/12 items-center justify-center border border-accent/20">
+              <Ionicons name={iconName} size={21} color={accentColor} />
             </View>
             <View>
               <Text className="text-base font-semibold text-foreground capitalize">
@@ -116,7 +116,7 @@ export function BudgetCard({ budget, existingCategories }: Props) {
           </View>
         </Card.Header>
 
-        <Card.Body className="px-4 pb-4">
+        <Card.Body className="px-4 pb-4 pt-1">
           <BudgetProgressBar spent={budget.spent} amount={budget.amount} />
         </Card.Body>
       </Card>

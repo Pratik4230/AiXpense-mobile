@@ -112,8 +112,28 @@ export const BudgetSheet = forwardRef<BudgetSheetRef, Props>(
             <BottomSheet.Title>
               {isEdit ? "Edit budget" : "Add budget"}
             </BottomSheet.Title>
+            <Text className="text-sm text-muted leading-snug -mt-1 mb-1">
+              {isEdit
+                ? "Update your monthly limit for this category."
+                : "Pick a category and set how much you plan to spend each month."}
+            </Text>
 
-            <View className="gap-5 mt-2">
+            <View className="gap-5 mt-3">
+              {isEdit && existing && (
+                <View className="rounded-2xl border border-separator bg-default px-4 py-3">
+                  <Text className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                    Category
+                  </Text>
+                  <Text className="text-lg font-semibold text-foreground capitalize mt-1">
+                    {existing.category}
+                  </Text>
+                  <Text className="text-xs text-muted mt-1.5 leading-snug">
+                    Category can&apos;t be changed. Create a new budget to use a
+                    different category.
+                  </Text>
+                </View>
+              )}
+
               {!isEdit && (
                 <Controller
                   control={control}
