@@ -39,7 +39,7 @@ export interface TopExpense {
   date: string;
 }
 
-interface ReportsResponse {
+export interface ReportsResponse {
   overview: OverviewData;
   trend: TrendPoint[];
   categories: CategoryPoint[];
@@ -47,38 +47,19 @@ interface ReportsResponse {
   topExpenses: TopExpense[];
 }
 
-function useReports(range: ReportRange, mode: ReportMode) {
+const STALE_MS = 1000 * 60 * 5;
+
+/**
+ * Single request for the reports dashboard. Avoids duplicate observers and
+ * prevents fetching expense data while the Income tab is active.
+ */
+export function useReportData(range: ReportRange, mode: ReportMode) {
   return useQuery<ReportsResponse>({
     queryKey: ["reports", range, mode],
     queryFn: () =>
       api
         .get<ReportsResponse>(`/api/reports?range=${range}&mode=${mode}`)
         .then((r) => r.data),
-    staleTime: 1000 * 60 * 5,
+    staleTime: STALE_MS,
   });
-}
-
-export function useReportOverview(range: ReportRange, mode: ReportMode) {
-  const q = useReports(range, mode);
-  return { ...q, data: q.data?.overview };
-}
-
-export function useReportTrend(range: ReportRange, mode: ReportMode) {
-  const q = useReports(range, mode);
-  return { ...q, data: q.data?.trend };
-}
-
-export function useReportCategories(range: ReportRange, mode: ReportMode) {
-  const q = useReports(range, mode);
-  return { ...q, data: q.data?.categories };
-}
-
-export function useReportBudgetVsActual(range: ReportRange) {
-  const q = useReports(range, "expense");
-  return { ...q, data: q.data?.budgetVsActual ?? undefined };
-}
-
-export function useReportTopExpenses(range: ReportRange, mode: ReportMode) {
-  const q = useReports(range, mode);
-  return { ...q, data: q.data?.topExpenses };
 }

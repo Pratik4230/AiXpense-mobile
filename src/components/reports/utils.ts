@@ -1,9 +1,14 @@
+let inrFormatter: Intl.NumberFormat | null = null;
+
 export function fmt(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
+  if (!inrFormatter) {
+    inrFormatter = new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    });
+  }
+  return inrFormatter.format(n);
 }
 
 export const MONTH_NAMES = [

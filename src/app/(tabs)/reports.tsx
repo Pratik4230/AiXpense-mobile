@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { ScrollView, RefreshControl, View } from "react-native";
-import { useRouter } from "expo-router";
-import { Tabs, Chip } from "heroui-native";
-import { SafeAreaView } from "@/components/ui";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useMemo } from "react";
 import {
-  useReportOverview,
-  useReportTrend,
-  useReportCategories,
-  useReportBudgetVsActual,
-  useReportTopExpenses,
+  ScrollView,
+  RefreshControl,
+  View,
+  Text,
+  useWindowDimensions,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Tabs, Chip, useThemeColor } from "heroui-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { SafeAreaView } from "@/components/ui";
+import {
+  useReportData,
   type ReportRange,
   type ReportMode,
 } from "@/services/reports";
@@ -31,56 +34,74 @@ const RANGES: { label: string; value: ReportRange }[] = [
 export default function ReportsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const [accentColor] = useThemeColor(["accent"]);
+
   const [range, setRange] = useState<ReportRange>("1m");
   const [mode, setMode] = useState<ReportMode>("expense");
 
-  const overview = useReportOverview(range, mode);
-  const trend = useReportTrend(range, mode);
-  const categories = useReportCategories(range, mode);
-  const budgetVsActual = useReportBudgetVsActual(range);
-  const topExpenses = useReportTopExpenses(range, mode);
+  const report = useReportData(range, mode);
 
-  const isRefreshing =
-    overview.isRefetching ||
-    trend.isRefetching ||
-    categories.isRefetching ||
-    topExpenses.isRefetching;
-
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["reports"] });
-  };
+  }, [queryClient]);
+
+  const bottomPad = Math.max(insets.bottom, 20) + 8;
+  const chartWidth = useMemo(
+    () => Math.max(240, Math.min(screenWidth - 40, 360)),
+    [screenWidth],
+  );
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pb-8"
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: bottomPad,
+        }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={report.isRefetching}
+            onRefresh={onRefresh}
+            tintColor={accentColor}
+            colors={[accentColor]}
+          />
         }
       >
-        <View className="flex-row items-center justify-between mt-4 mb-2">
-          <View>
-            <Tabs
-              value={mode}
-              onValueChange={(v) => setMode(v as ReportMode)}
-              variant="secondary"
-            >
-              <Tabs.List>
-                <Tabs.Indicator />
-                <Tabs.Trigger value="expense">
-                  <Tabs.Label>Expenses</Tabs.Label>
-                </Tabs.Trigger>
-                <Tabs.Trigger value="income">
-                  <Tabs.Label>Income</Tabs.Label>
-                </Tabs.Trigger>
-              </Tabs.List>
-            </Tabs>
-          </View>
+        <View className="pt-2 pb-4">
+          <Text className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted mb-1">
+            AiXpense
+          </Text>
+          <Text className="text-2xl font-bold text-foreground tracking-tight">
+            Reports
+          </Text>
+          <Text className="text-sm text-muted mt-1 leading-snug">
+            Spending and income insights for your selected period.
+          </Text>
         </View>
 
-        <View className="flex-row gap-2 mb-4">
+        <View className="mb-4">
+          <Tabs
+            value={mode}
+            onValueChange={(v) => setMode(v as ReportMode)}
+            variant="secondary"
+          >
+            <Tabs.List className="w-full">
+              <Tabs.Indicator />
+              <Tabs.Trigger value="expense" className="flex-1">
+                <Tabs.Label>Expenses</Tabs.Label>
+              </Tabs.Trigger>
+              <Tabs.Trigger value="income" className="flex-1">
+                <Tabs.Label>Income</Tabs.Label>
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Tabs>
+        </View>
+
+        <View className="flex-row flex-wrap gap-2 mb-5">
           {RANGES.map((r) => (
             <Chip
               key={r.value}
@@ -94,36 +115,37 @@ export default function ReportsScreen() {
           ))}
         </View>
 
-        <View className="gap-4">
+        <View className="gap-5">
           <OverviewCards
-            data={overview.data}
-            isLoading={overview.isLoading}
+            data={report.data?.overview}
+            isLoading={report.isPending}
             mode={mode}
           />
 
           <TrendChart
-            data={trend.data}
-            isLoading={trend.isLoading}
+            data={report.data?.trend}
+            isLoading={report.isPending}
             range={range}
             mode={mode}
+            chartWidth={chartWidth}
           />
 
           <CategoryBreakdown
-            data={categories.data}
-            isLoading={categories.isLoading}
+            data={report.data?.categories}
+            isLoading={report.isPending}
           />
 
           <TopExpenses
-            data={topExpenses.data}
-            isLoading={topExpenses.isLoading}
+            data={report.data?.topExpenses}
+            isLoading={report.isPending}
             mode={mode}
             onViewAll={() => router.push(`/transactions?mode=${mode}`)}
           />
 
           {mode === "expense" && (
             <BudgetVsActual
-              data={budgetVsActual.data}
-              isLoading={budgetVsActual.isLoading}
+              data={report.data?.budgetVsActual ?? undefined}
+              isLoading={report.isPending}
             />
           )}
         </View>
