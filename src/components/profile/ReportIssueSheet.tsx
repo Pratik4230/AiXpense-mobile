@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { BottomSheet, Button, TextField, Input, Label, useThemeColor } from "heroui-native";
+import {
+  BottomSheet,
+  Button,
+  TextField,
+  Input,
+  Label,
+  useThemeColor,
+} from "heroui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useReportIssue } from "@/hooks/queries/useIssues";
 
@@ -73,47 +80,55 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
     >
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content
-          snapPoints={["75%"]}
-        >
+        <BottomSheet.Content snapPoints={["75%"]}>
           <KeyboardAwareScrollView
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, paddingTop: 8 }}
+            contentContainerStyle={{
+              paddingHorizontal: 20,
+              paddingBottom: 36,
+              paddingTop: 4,
+            }}
             keyboardShouldPersistTaps="handled"
             bottomOffset={32}
           >
-            <BottomSheet.Title className="text-lg font-bold text-foreground mb-5">
-              Report an Issue
+            <BottomSheet.Title className="text-lg font-bold text-foreground">
+              Report an issue
             </BottomSheet.Title>
+            <Text className="text-sm text-muted leading-snug mt-1 mb-5">
+              We read every report. Include steps to reproduce for bugs.
+            </Text>
 
-            <View className="gap-3 mb-4">
-              <Text className="text-xs font-semibold text-muted uppercase tracking-widest">
+            <View className="gap-3 mb-5">
+              <Text className="text-[11px] font-semibold text-muted uppercase tracking-wider">
                 Type
               </Text>
               <View className="flex-row gap-2">
-                {TYPES.map((t) => (
-                  <Pressable
-                    key={t.value}
-                    onPress={() => setType(t.value)}
-                    className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                    style={{
-                      borderColor: type === t.value ? accentColor : "#3334",
-                      backgroundColor:
-                        type === t.value ? accentColor + "18" : "transparent",
-                    }}
-                  >
-                    <Ionicons
-                      name={t.icon as any}
-                      size={14}
-                      color={type === t.value ? accentColor : mutedColor}
-                    />
-                    <Text
-                      className="text-xs font-medium"
-                      style={{ color: type === t.value ? accentColor : mutedColor }}
+                {TYPES.map((t) => {
+                  const selected = type === t.value;
+                  return (
+                    <Pressable
+                      key={t.value}
+                      onPress={() => setType(t.value)}
+                      className={`flex-1 flex-row items-center justify-center gap-1.5 py-3 rounded-2xl border-[1.5px] ${
+                        selected
+                          ? "border-accent bg-accent/12"
+                          : "border-separator bg-transparent"
+                      }`}
                     >
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Ionicons
+                        name={t.icon as any}
+                        size={15}
+                        color={selected ? accentColor : mutedColor}
+                      />
+                      <Text
+                        className={`text-xs font-semibold ${
+                          selected ? "text-accent" : "text-muted"
+                        }`}
+                      >
+                        {t.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
@@ -126,7 +141,7 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
                     setTitle(v);
                     if (titleError) setTitleError("");
                   }}
-                  placeholder="Brief summary of the issue"
+                  placeholder="Short summary"
                   returnKeyType="next"
                 />
                 {!!titleError && (
@@ -145,7 +160,10 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
                   placeholder="What happened? What did you expect?"
                   multiline
                   numberOfLines={4}
-                  style={{ minHeight: 90, textAlignVertical: "top" }}
+                  style={{
+                    minHeight: 96,
+                    textAlignVertical: "top",
+                  }}
                   returnKeyType="done"
                   blurOnSubmit
                 />
@@ -165,7 +183,7 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
                 className="flex-1"
               >
                 <Button.Label>
-                  {isPending ? "Submitting..." : "Submit"}
+                  {isPending ? "Submitting…" : "Submit"}
                 </Button.Label>
               </Button>
             </View>
