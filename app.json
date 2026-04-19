@@ -37,7 +37,21 @@
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AiXpense to attach receipt photos from your library.",
+          "cameraPermission": "Allow AiXpense to scan bills with the camera."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow AiXpense to transcribe what you say into expense messages."
+        }
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

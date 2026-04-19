@@ -49,3 +49,5 @@ app-example
 /android
 heroui-agents-md
 .heroui-docs/
+AGENTS.md
+CLAUDE.md
