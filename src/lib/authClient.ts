@@ -2,12 +2,13 @@ import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import { emailOTPClient } from "better-auth/client/plugins";
 import * as SecureStore from "expo-secure-store";
+import { webApiBase } from "@/lib/env";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.EXPO_PUBLIC_WEB_API_URL ?? "http://localhost:3000",
+  baseURL: webApiBase(),
   plugins: [
     expoClient({
-      scheme: "aixpensemobile",
+      scheme: "aixpense",
       storagePrefix: "aixpense",
       storage: SecureStore,
     }),

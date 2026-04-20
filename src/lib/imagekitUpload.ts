@@ -1,4 +1,5 @@
 import { authClient } from "@/lib/authClient";
+import { webApiBase } from "@/lib/env";
 
 const IMAGEKIT_UPLOAD = "https://upload.imagekit.io/api/v1/files/upload";
 
@@ -8,13 +9,6 @@ export type ImageKitAuth = {
   signature: string;
   publicKey: string;
 };
-
-function webApiBase(): string {
-  return (process.env.EXPO_PUBLIC_WEB_API_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
-}
 
 export async function fetchImageKitAuth(): Promise<ImageKitAuth> {
   const cookies = authClient.getCookie();

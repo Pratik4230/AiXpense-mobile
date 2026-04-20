@@ -22,15 +22,12 @@ import { Button, Input } from "heroui-native";
 import type { SelectedTransaction } from "./TransactionAttachment";
 import { uploadReceiptToImageKit } from "@/lib/imagekitUpload";
 import { transcribeVoiceRecording } from "@/lib/voiceTranscription";
+import { webApiBase } from "@/lib/env";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
 function premiumUrl() {
-  const base = (process.env.EXPO_PUBLIC_WEB_API_URL ?? "https://aixpense.in").replace(
-    /\/$/,
-    "",
-  );
-  return `${base}/premium`;
+  return `${webApiBase()}/premium`;
 }
 
 interface Props {

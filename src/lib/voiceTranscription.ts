@@ -1,11 +1,5 @@
 import { authClient } from "@/lib/authClient";
-
-function webApiBase(): string {
-  return (process.env.EXPO_PUBLIC_WEB_API_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
-}
+import { webApiBase } from "@/lib/env";
 
 /**
  * Sends recorded audio to the Next.js `/api/voice` route (Sarvam STT), same contract as web `useSarvamSTT`.

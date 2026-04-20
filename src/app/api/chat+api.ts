@@ -1,10 +1,10 @@
-const WEB_API = process.env.EXPO_PUBLIC_WEB_API_URL ?? "http://localhost:3000";
+import { webApiBase } from "@/lib/env";
 
 export async function POST(req: Request) {
   const cookie = req.headers.get("Cookie") ?? "";
   const body = await req.text();
 
-  const response = await fetch(`${WEB_API}/api/chat`, {
+  const response = await fetch(`${webApiBase()}/api/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

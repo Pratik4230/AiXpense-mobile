@@ -8,7 +8,7 @@ const KEY = ["budgets"] as const;
 export function useBudgets() {
   return useQuery<Budget[]>({
     queryKey: KEY,
-    queryFn: () => api.get("/api/budgets").then((r) => r.data),
+    queryFn: () => api.get<Budget[]>("/api/budgets").then((r) => r.data),
   });
 }
 
@@ -16,7 +16,7 @@ export function useCreateBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: { category: Category; amount: number }) =>
-      api.post("/api/budgets", data).then((r) => r.data),
+      api.post<Budget>("/api/budgets", data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
@@ -25,7 +25,7 @@ export function useUpdateBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) =>
-      api.patch(`/api/budgets/${id}`, { amount }).then((r) => r.data),
+      api.patch<Budget>(`/api/budgets/${id}`, { amount }).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
@@ -34,7 +34,7 @@ export function useDeleteBudget() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      api.delete(`/api/budgets/${id}`).then((r) => r.data),
+      api.delete<{ ok: true }>(`/api/budgets/${id}`).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

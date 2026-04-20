@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { webApiBase } from "@/lib/env";
 
 export const generateAPIUrl = (relativePath: string) => {
   const path = relativePath.startsWith("/") ? relativePath : `/${relativePath}`;
@@ -13,11 +14,9 @@ export const generateAPIUrl = (relativePath: string) => {
     return `http://${hostUri}${path}`;
   }
 
-  if (!process.env.EXPO_PUBLIC_API_BASE_URL) {
-    throw new Error(
-      "EXPO_PUBLIC_API_BASE_URL environment variable is not defined",
-    );
-  }
-
-  return process.env.EXPO_PUBLIC_API_BASE_URL.concat(path);
+  // In production/native builds, API routes live on the deployed web backend.
+  // Prefer `EXPO_PUBLIC_WEB_API_URL` (via `webApiBase()`), keep API_BASE_URL as optional override.
+  const base =
+    process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? webApiBase();
+  return `${base}${path}`;
 };
