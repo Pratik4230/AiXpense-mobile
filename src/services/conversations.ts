@@ -59,11 +59,11 @@ export function useConversations(enabled = true) {
   });
 }
 
-export function useConversation(id: string | null) {
+export function useConversation(id: string | null, enabled = true) {
   return useQuery({
     queryKey: ["conversation", id],
     queryFn: () => fetchConversation(id!),
-    enabled: !!id,
+    enabled: enabled && !!id,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });

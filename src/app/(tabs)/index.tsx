@@ -39,17 +39,22 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function ChatSessionLoader({
   conversationId,
+  shouldFetchConversation,
   onOpenDrawer,
   onConversationCreated,
 }: {
   conversationId: string | null;
+  shouldFetchConversation: boolean;
   onOpenDrawer: () => void;
   onConversationCreated: (id: string) => void;
 }) {
-  const { data: conversationData, isLoading } = useConversation(conversationId);
+  const { data: conversationData, isLoading } = useConversation(
+    conversationId,
+    shouldFetchConversation,
+  );
   const [accentColor] = useThemeColor(["accent"]);
 
-  if (conversationId && isLoading) {
+  if (conversationId && shouldFetchConversation && isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center">
         <ActivityIndicator size="large" color={accentColor} />
@@ -60,7 +65,9 @@ function ChatSessionLoader({
   return (
     <ChatSession
       conversationId={conversationId}
-      initialMessages={conversationData?.messages || []}
+      initialMessages={
+        shouldFetchConversation ? conversationData?.messages || [] : []
+      }
       onOpenDrawer={onOpenDrawer}
       onConversationCreated={onConversationCreated}
     />
@@ -399,6 +406,8 @@ export default function HomeScreen() {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
+  const [chatSessionKey, setChatSessionKey] = useState(0);
+  const [shouldFetchConversation, setShouldFetchConversation] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
@@ -421,6 +430,12 @@ export default function HomeScreen() {
 
   const handleDrawerSelect = (id: string | null, navigation: any) => {
     setCurrentConversationId(id);
+    setShouldFetchConversation(!!id);
+    // Force a fresh ChatSession when the user explicitly switches sessions
+    // via the sidebar (including "New chat"). Do NOT bump this key when the
+    // session id is created after the first message; that would remount and
+    // feel like a reload.
+    setChatSessionKey((k) => k + 1);
     navigation.closeDrawer();
   };
 
@@ -438,10 +453,14 @@ export default function HomeScreen() {
       <Drawer.Screen name="ChatSession">
         {(props) => (
           <ChatSessionLoader
-            key={currentConversationId || "new"}
+            key={chatSessionKey}
             conversationId={currentConversationId}
             onOpenDrawer={() => props.navigation.openDrawer()}
-            onConversationCreated={setCurrentConversationId}
+            shouldFetchConversation={shouldFetchConversation}
+            onConversationCreated={(id) => {
+              setCurrentConversationId(id);
+              setShouldFetchConversation(false);
+            }}
           />
         )}
       </Drawer.Screen>
