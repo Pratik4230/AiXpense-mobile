@@ -43,7 +43,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-
+.vscode
 # generated native folders
 /ios
 /android
@@ -51,3 +51,7 @@ heroui-agents-md
 .heroui-docs/
 AGENTS.md
 CLAUDE.md
+.agent
+.agents
+.claude
+Theme
