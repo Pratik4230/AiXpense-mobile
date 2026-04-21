@@ -37,16 +37,20 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+
 
 # typescript
 *.tsbuildinfo
 
 app-example
 .vscode
+
+# moved unused assets
+/_unused-images/
 # generated native folders
 /ios
 /android
+.env*.local
 heroui-agents-md
 .heroui-docs/
 AGENTS.md
