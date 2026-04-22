@@ -58,6 +58,7 @@ export function ChatInput({
   const canSend = isDelete || hasText;
   const [uploading, setUploading] = useState(false);
   const [voiceProcessing, setVoiceProcessing] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
@@ -253,40 +254,51 @@ export function ChatInput({
         gap: 8,
       }}
     >
-      <Pressable
-        onPress={onAttachPress}
-        disabled={busy || !!isDelete || !!selectedTransaction || voiceBusy}
-        style={({ pressed }) => ({
-          width: 40,
-          height: 40,
-          borderRadius: 999,
-          marginBottom: 2,
-          alignItems: "center",
-          justifyContent: "center",
-          opacity:
-            busy || isDelete || selectedTransaction || voiceBusy
-              ? 0.35
-              : pressed
-                ? 0.75
-                : 1,
-          backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-        })}
-        hitSlop={8}
+      <View
+        pointerEvents={isInputFocused ? "none" : "auto"}
+        style={{
+          width: isInputFocused ? 0 : 40,
+          opacity: isInputFocused ? 0 : 1,
+          overflow: "hidden",
+        }}
       >
-        {uploading ? (
-          <ActivityIndicator size="small" color="#f97316" />
-        ) : (
-          <Ionicons
-            name={isPremium ? "camera-outline" : "lock-closed-outline"}
-            size={20}
-            color={isPremium ? iconMuted : "#a16207"}
-          />
-        )}
-      </Pressable>
+        <Pressable
+          onPress={onAttachPress}
+          disabled={busy || !!isDelete || !!selectedTransaction || voiceBusy}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            marginBottom: 2,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity:
+              busy || isDelete || selectedTransaction || voiceBusy
+                ? 0.35
+                : pressed
+                  ? 0.75
+                  : 1,
+            backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+          })}
+          hitSlop={8}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color="#f97316" />
+          ) : (
+            <Ionicons
+              name={isPremium ? "camera-outline" : "lock-closed-outline"}
+              size={20}
+              color={isPremium ? iconMuted : "#a16207"}
+            />
+          )}
+        </Pressable>
+      </View>
 
       <Input
         value={value}
         onChangeText={onChange}
+        onFocus={() => setIsInputFocused(true)}
+        onBlur={() => setIsInputFocused(false)}
         placeholder={placeholder}
         multiline
         maxLength={500}
@@ -303,35 +315,44 @@ export function ChatInput({
         }}
       />
 
-      <Pressable
-        onPress={onMicPress}
-        disabled={micDisabled && !isRecording}
-        style={({ pressed }) => ({
-          width: 40,
-          height: 40,
-          borderRadius: 999,
-          marginBottom: 2,
-          alignItems: "center",
-          justifyContent: "center",
-          opacity: micDisabled && !isRecording ? 0.35 : pressed ? 0.75 : 1,
-          backgroundColor: isRecording
-            ? "rgba(239,68,68,0.22)"
-            : isDark
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(0,0,0,0.06)",
-        })}
-        hitSlop={8}
+      <View
+        pointerEvents={isInputFocused ? "none" : "auto"}
+        style={{
+          width: isInputFocused ? 0 : 40,
+          opacity: isInputFocused ? 0 : 1,
+          overflow: "hidden",
+        }}
       >
-        {voiceProcessing ? (
-          <ActivityIndicator size="small" color="#f97316" />
-        ) : (
-          <Ionicons
-            name={isRecording ? "stop" : "mic-outline"}
-            size={20}
-            color={isRecording ? "#ef4444" : iconMuted}
-          />
-        )}
-      </Pressable>
+        <Pressable
+          onPress={onMicPress}
+          disabled={micDisabled && !isRecording}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            marginBottom: 2,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: micDisabled && !isRecording ? 0.35 : pressed ? 0.75 : 1,
+            backgroundColor: isRecording
+              ? "rgba(239,68,68,0.22)"
+              : isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.06)",
+          })}
+          hitSlop={8}
+        >
+          {voiceProcessing ? (
+            <ActivityIndicator size="small" color="#f97316" />
+          ) : (
+            <Ionicons
+              name={isRecording ? "stop" : "mic-outline"}
+              size={20}
+              color={isRecording ? "#ef4444" : iconMuted}
+            />
+          )}
+        </Pressable>
+      </View>
 
       <Button
         isIconOnly
