@@ -44,7 +44,7 @@ yarn-error.*
 
 app-example
 .vscode
-
+scripts
 # moved unused assets
 /_unused-images/
 # generated native folders
