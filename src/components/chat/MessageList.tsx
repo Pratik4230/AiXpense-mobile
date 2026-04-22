@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  FlatList,
   useWindowDimensions,
   useColorScheme,
   Pressable,
@@ -10,9 +9,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Chip, BottomSheet } from "heroui-native";
 import { ToolLoading } from "./ToolLoading";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import Animated from "react-native-reanimated";
 
 interface ChatMessage {
   id: string;
@@ -787,64 +787,79 @@ interface Props {
   onEdit: (id: string, type: "expense" | "income", item: string, amount: number) => void;
   onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
   outdatedIds: Map<string, string>;
-  flatListRef?: React.RefObject<FlatList | null>;
+  onScroll?: any;
 }
 
-export function MessageList({ messages, isStreaming, onEdit, onDelete, outdatedIds }: Props) {
+export function MessageList({
+  messages,
+  isStreaming,
+  onEdit,
+  onDelete,
+  outdatedIds,
+  onScroll,
+}: Props) {
   const isDark = useColorScheme() === "dark";
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
 
-  const data = (() => {
-    const base =
-      isStreaming &&
-      messages.length > 0 &&
-      messages[messages.length - 1].role === "user"
-        ? [
-            ...messages,
-            {
-              id: "__loading__",
-              role: "assistant" as const,
-              parts: [{ type: "loading" }],
-            },
-          ]
-        : [...messages];
-    return base.reverse();
-  })();
+  const data = useMemo(() => {
+    const shouldShowLoading =
+      isStreaming && messages.length > 0 && messages[messages.length - 1].role === "user";
+
+    const base = shouldShowLoading
+      ? [
+          ...messages,
+          {
+            id: "__loading__",
+            role: "assistant" as const,
+            parts: [{ type: "loading" }],
+          },
+        ]
+      : messages;
+
+    // FlatList uses referential equality heavily; avoid reallocations during scroll.
+    return [...base].reverse();
+  }, [isStreaming, messages]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: ChatMessage | { id: "__loading__"; role: "assistant"; parts: any[] } }) => {
+      if (item.id === "__loading__") {
+        return (
+          <View style={{ alignSelf: "flex-start", marginBottom: 16 }}>
+            <View
+              style={{
+                borderRadius: 20,
+                borderBottomLeftRadius: 5,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                backgroundColor: isDark ? "#27272a" : "#fafafa",
+                borderWidth: isDark ? 0 : 1,
+                borderColor: "rgba(0,0,0,0.06)",
+              }}
+            >
+              <ToolLoading type="thinking" />
+            </View>
+          </View>
+        );
+      }
+      return (
+        <MessageBubble
+          message={item as ChatMessage}
+          isDark={isDark}
+          setActionTarget={setActionTarget}
+          outdatedIds={outdatedIds}
+        />
+      );
+    },
+    [isDark, outdatedIds],
+  );
 
   return (
     <>
-      <FlatList
+      <Animated.FlatList
         data={data}
         inverted
-        renderItem={({ item }) => {
-          if (item.id === "__loading__") {
-            return (
-              <View style={{ alignSelf: "flex-start", marginBottom: 16 }}>
-                <View
-                  style={{
-                    borderRadius: 20,
-                    borderBottomLeftRadius: 5,
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                    backgroundColor: isDark ? "#27272a" : "#fafafa",
-                    borderWidth: isDark ? 0 : 1,
-                    borderColor: "rgba(0,0,0,0.06)",
-                  }}
-                >
-                  <ToolLoading type="thinking" />
-                </View>
-              </View>
-            );
-          }
-          return (
-            <MessageBubble
-              message={item}
-              isDark={isDark}
-              setActionTarget={setActionTarget}
-              outdatedIds={outdatedIds}
-            />
-          );
-        }}
+        onScroll={onScroll}
+        renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           flexGrow: 1,

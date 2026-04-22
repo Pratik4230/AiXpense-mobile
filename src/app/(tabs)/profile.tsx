@@ -3,9 +3,9 @@ import {
   View,
   Text,
   Alert,
-  ScrollView,
   Pressable,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import {
@@ -174,7 +174,7 @@ export default function ProfileScreen() {
           paddingBottom: bottomPad,
         }}
         showsVerticalScrollIndicator={false}
-      >
+              >
         <View className="pt-2 pb-5">
           <Text className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted mb-1">
             AiXpense
