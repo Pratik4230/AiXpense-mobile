@@ -1,21 +1,33 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { View, Text, TextInput, Pressable, useColorScheme } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, usePathname, useSegments } from "expo-router";
 import { Button, useThemeColor } from "heroui-native";
-import { authClient, signIn } from "@/lib/authClient";
+import { authClient } from "@/lib/authClient";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
 import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
 
 export default function VerifyEmailScreen() {
-  const { email, password } = useLocalSearchParams<{
+  const { email } = useLocalSearchParams<{
     email: string;
-    password: string;
   }>();
+  const pathname = usePathname();
+  const segments = useSegments();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const inputs = useRef<(TextInput | null)[]>([]);
+
+  useEffect(() => {
+    console.log("[auth][verify-email] screen:mounted", {
+      pathname,
+      segments,
+      email,
+      hasSession: Boolean(session),
+      sessionPending,
+    });
+  }, [pathname, segments, email, session, sessionPending]);
 
   const handleChange = (value: string, index: number) => {
     if (value.length > 1) {
@@ -54,10 +66,18 @@ export default function VerifyEmailScreen() {
     if (!email || code.length !== 6) return;
     setError("");
     setIsLoading(true);
+    console.log("[auth][verify-email] verify:start", {
+      email,
+      codeLength: code.length,
+    });
 
     const result = await authClient.emailOtp.verifyEmail({
       email,
       otp: code,
+    });
+    console.log("[auth][verify-email] verify:result", {
+      hasError: Boolean(result.error),
+      error: result.error?.message,
     });
 
     if (result.error) {
@@ -66,14 +86,7 @@ export default function VerifyEmailScreen() {
       return;
     }
 
-    if (password) {
-      const signedIn = await signIn.email({ email, password });
-      if (!signedIn.error) {
-        router.replace("/");
-        setIsLoading(false);
-        return;
-      }
-    }
+    console.log("[auth][verify-email] navigation:replace", { to: "/login" });
     router.replace("/login");
     setIsLoading(false);
   };

@@ -51,19 +51,25 @@ export default function SignupScreen() {
 
   const onSubmit = async (data: FormData) => {
     setError("");
+    console.log("[auth][signup] submit:start", { email: data.email });
     const result = await authClient.signUp.email({
       name: data.name,
       email: data.email,
       password: data.password,
     });
+    console.log("[auth][signup] submit:result", {
+      hasError: Boolean(result.error),
+      error: result.error?.message,
+    });
     if (result.error) {
       setError(result.error.message ?? "Registration failed");
       return;
     }
-    router.push({
-      pathname: "/verify-email",
-      params: { email: data.email, password: data.password },
+    console.log("[auth][signup] navigation:replace", {
+      to: "/verify-email",
+      email: data.email,
     });
+    router.replace(`/verify-email?email=${encodeURIComponent(data.email)}`);
   };
 
   const handleSocialSignIn = async (provider: "google" | "github") => {

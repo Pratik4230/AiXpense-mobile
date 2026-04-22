@@ -2,7 +2,7 @@ import "../../polyfills";
 import "../../global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Uniwind } from "uniwind";
@@ -33,6 +33,8 @@ const heroConfig: HeroUINativeConfig = {
 
 export default function RootLayout() {
   const { data: session, isPending } = authClient.useSession();
+  const [authReady, setAuthReady] = useState(false);
+  const [resolvedSession, setResolvedSession] = useState<typeof session>(null);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -51,12 +53,19 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded && !isPending) {
+    if (!isPending) {
+      setResolvedSession(session ?? null);
+      setAuthReady(true);
+    }
+  }, [isPending, session]);
+
+  useEffect(() => {
+    if (fontsLoaded && authReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, isPending]);
+  }, [fontsLoaded, authReady]);
 
-  if (!fontsLoaded || isPending) return null;
+  if (!fontsLoaded || !authReady) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -64,10 +73,10 @@ export default function RootLayout() {
         <HeroUINativeProvider config={heroConfig}>
           <QueryClientProvider client={queryClient}>
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Protected guard={!session}>
+              <Stack.Protected guard={!resolvedSession}>
                 <Stack.Screen name="(auth)" />
               </Stack.Protected>
-              <Stack.Protected guard={!!session}>
+              <Stack.Protected guard={!!resolvedSession}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen
                   name="transactions"
