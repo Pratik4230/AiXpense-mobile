@@ -69,12 +69,12 @@ export default function VerifyEmailScreen() {
     if (password) {
       const signedIn = await signIn.email({ email, password });
       if (!signedIn.error) {
-        router.replace("/(tabs)");
+        router.replace("/");
         setIsLoading(false);
         return;
       }
     }
-    router.replace("/(auth)/login");
+    router.replace("/login");
     setIsLoading(false);
   };
 

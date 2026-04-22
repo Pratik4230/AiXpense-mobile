@@ -29,6 +29,9 @@ type FormData = z.infer<typeof schema>;
 export default function LoginScreen() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(
+    null,
+  );
   const [needsVerification, setNeedsVerification] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -65,6 +68,21 @@ export default function LoginScreen() {
         setError(result.error.message ?? "Login failed");
       }
     }
+  };
+
+  const handleSocialSignIn = async (provider: "google" | "github") => {
+    setError("");
+    setNeedsVerification(false);
+    setSocialLoading(provider);
+    const result = await authClient.signIn.social({
+      provider,
+      // Required on Expo native so OAuth returns to app scheme instead of web.
+      callbackURL: "/",
+    });
+    if (result.error) {
+      setError(result.error.message ?? `Failed to sign in with ${provider}`);
+    }
+    setSocialLoading(null);
   };
 
   const handleSendOtp = async () => {
@@ -144,7 +162,7 @@ export default function LoginScreen() {
             <TextField isInvalid={!!errors.email}>
               <Label>Email</Label>
               <Input
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
@@ -191,7 +209,7 @@ export default function LoginScreen() {
         />
 
         <Pressable
-          onPress={() => router.push("/(auth)/forgot-password")}
+          onPress={() => router.push("/forgot-password")}
           className="self-end -mt-1"
           hitSlop={8}
         >
@@ -266,13 +284,48 @@ export default function LoginScreen() {
         >
           {isSubmitting ? "Signing in..." : "Sign in"}
         </Button>
+
+        <View className="flex-row items-center gap-3 my-2">
+          <Separator className="flex-1 opacity-50" />
+          <Text className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
+            Or continue with
+          </Text>
+          <Separator className="flex-1 opacity-50" />
+        </View>
+
+        <View className="gap-2">
+          <Button
+            variant="outline"
+            onPress={() => handleSocialSignIn("google")}
+            isDisabled={socialLoading !== null}
+          >
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="logo-google" size={18} color={accentColor} />
+              <Text className="text-sm font-medium text-foreground">
+                {socialLoading === "google" ? "Connecting..." : "Continue with Google"}
+              </Text>
+            </View>
+          </Button>
+          <Button
+            variant="outline"
+            onPress={() => handleSocialSignIn("github")}
+            isDisabled={socialLoading !== null}
+          >
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="logo-github" size={18} color={accentColor} />
+              <Text className="text-sm font-medium text-foreground">
+                {socialLoading === "github" ? "Connecting..." : "Continue with GitHub"}
+              </Text>
+            </View>
+          </Button>
+        </View>
       </AuthFormSurface>
 
       <Separator className="my-8 opacity-60" />
 
       <View className="flex-row justify-center gap-1.5 flex-wrap">
         <Text className="text-sm text-muted">New to AiXpense?</Text>
-        <Pressable onPress={() => router.push("/(auth)/signup")} hitSlop={8}>
+        <Pressable onPress={() => router.push("/signup")} hitSlop={8}>
           <Text className="text-sm font-semibold text-accent">Create account</Text>
         </Pressable>
       </View>

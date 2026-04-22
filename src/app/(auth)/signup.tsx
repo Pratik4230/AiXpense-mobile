@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, Pressable, Text } from "react-native";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +34,9 @@ type FormData = z.infer<typeof schema>;
 
 export default function SignupScreen() {
   const [error, setError] = useState("");
+  const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(
+    null,
+  );
 
   const {
     control,
@@ -55,9 +59,23 @@ export default function SignupScreen() {
       return;
     }
     router.push({
-      pathname: "/(auth)/verify-email",
+      pathname: "/verify-email",
       params: { email: data.email, password: data.password },
     });
+  };
+
+  const handleSocialSignIn = async (provider: "google" | "github") => {
+    setError("");
+    setSocialLoading(provider);
+    const result = await authClient.signIn.social({
+      provider,
+      // Required on Expo native so OAuth returns to app scheme instead of web.
+      callbackURL: "/",
+    });
+    if (result.error) {
+      setError(result.error.message ?? `Failed to continue with ${provider}`);
+    }
+    setSocialLoading(null);
   };
 
   return (
@@ -75,7 +93,7 @@ export default function SignupScreen() {
             <TextField isInvalid={!!errors.name}>
               <Label>Full name</Label>
               <Input
-                placeholder="John Doe"
+                placeholder="Enter your full name"
                 value={value}
                 onChangeText={onChange}
                 autoCapitalize="words"
@@ -93,7 +111,7 @@ export default function SignupScreen() {
             <TextField isInvalid={!!errors.email}>
               <Label>Email</Label>
               <Input
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
@@ -149,6 +167,41 @@ export default function SignupScreen() {
         >
           {isSubmitting ? "Creating account..." : "Continue"}
         </Button>
+
+        <View className="flex-row items-center gap-3 my-2">
+          <Separator className="flex-1 opacity-50" />
+          <Text className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
+            Or continue with
+          </Text>
+          <Separator className="flex-1 opacity-50" />
+        </View>
+
+        <View className="gap-2">
+          <Button
+            variant="outline"
+            onPress={() => handleSocialSignIn("google")}
+            isDisabled={socialLoading !== null}
+          >
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="logo-google" size={18} />
+              <Text className="text-sm font-medium text-foreground">
+                {socialLoading === "google" ? "Connecting..." : "Continue with Google"}
+              </Text>
+            </View>
+          </Button>
+          <Button
+            variant="outline"
+            onPress={() => handleSocialSignIn("github")}
+            isDisabled={socialLoading !== null}
+          >
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="logo-github" size={18} />
+              <Text className="text-sm font-medium text-foreground">
+                {socialLoading === "github" ? "Connecting..." : "Continue with GitHub"}
+              </Text>
+            </View>
+          </Button>
+        </View>
       </AuthFormSurface>
 
       <Separator className="my-8 opacity-60" />
@@ -156,7 +209,7 @@ export default function SignupScreen() {
       <View className="flex-row justify-center gap-1.5 flex-wrap">
         <Text className="text-sm text-muted">Already have an account?</Text>
         <Pressable
-          onPress={() => router.replace("/(auth)/login")}
+          onPress={() => router.replace("/login")}
           hitSlop={8}
         >
           <Text className="text-sm font-semibold text-accent">Sign in</Text>

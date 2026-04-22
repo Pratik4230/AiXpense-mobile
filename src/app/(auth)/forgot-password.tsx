@@ -134,7 +134,7 @@ export default function ForgotPasswordScreen() {
             You can sign in with your new password.
           </Text>
         </View>
-        <Button onPress={() => router.replace("/(auth)/login")} className="w-full">
+        <Button onPress={() => router.replace("/login")} className="w-full">
           Sign in
         </Button>
       </AuthShell>
@@ -271,7 +271,7 @@ export default function ForgotPasswordScreen() {
             <TextField isInvalid={!!emailForm.formState.errors.email}>
               <Label>Email</Label>
               <Input
-                placeholder="you@example.com"
+                placeholder="Enter your email"
                 value={value}
                 onChangeText={onChange}
                 keyboardType="email-address"
