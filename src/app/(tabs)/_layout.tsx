@@ -134,28 +134,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: 56,
-    height: 44,
+    height: 34,
   },
   activePill: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 14,
     marginHorizontal: 2,
-    marginVertical: 4,
+    marginVertical: 3,
   },
   iconWrap: {
     alignItems: "center",
     justifyContent: "center",
     width: 48,
-    height: 40,
+    height: 30,
   },
 });
 
-export default function TabsLayout() {
+function TabsLayoutInner() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 10);
-  const tabBarHeight = 52 + bottomPad;
+  const tabBarHeight = 38 + bottomPad;
 
   const [accentColor, mutedColor, backgroundColor, separatorColor] =
     useThemeColor(["accent", "muted", "background", "separator"]);
@@ -174,7 +174,7 @@ export default function TabsLayout() {
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: separatorColor,
           height: tabBarHeight,
-          paddingTop: 6,
+          paddingTop: 2,
           paddingBottom: bottomPad,
           paddingHorizontal: 4,
           elevation: 0,
@@ -215,4 +215,8 @@ export default function TabsLayout() {
       ))}
     </Tabs>
   );
+}
+
+export default function TabsLayout() {
+  return <TabsLayoutInner />;
 }
