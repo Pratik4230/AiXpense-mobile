@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Pressable, Text } from "react-native";
+import { View, Pressable, Text, useColorScheme } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
@@ -17,6 +17,7 @@ import { authClient } from "@/lib/authClient";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
 import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
+import { SocialProviderIcon } from "@/components/auth/SocialProviderIcon";
 
 const schema = z
   .object({
@@ -37,6 +38,7 @@ export default function SignupScreen() {
   const [socialLoading, setSocialLoading] = useState<"google" | "github" | null>(
     null,
   );
+  const isDark = useColorScheme() === "dark";
 
   const {
     control,
@@ -79,10 +81,11 @@ export default function SignupScreen() {
   };
 
   return (
-    <AuthShell centered>
+    <AuthShell topPadding={10}>
       <AuthBrandHeader
         title="Create your account"
         subtitle="Track spending, set budgets, and chat with AI in one calm place."
+        compact
       />
 
       <AuthFormSurface>
@@ -168,7 +171,7 @@ export default function SignupScreen() {
           {isSubmitting ? "Creating account..." : "Continue"}
         </Button>
 
-        <View className="flex-row items-center gap-3 my-2">
+        <View className="flex-row items-center gap-3 my-1.5">
           <Separator className="flex-1 opacity-50" />
           <Text className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
             Or continue with
@@ -183,7 +186,7 @@ export default function SignupScreen() {
             isDisabled={socialLoading !== null}
           >
             <View className="flex-row items-center gap-2">
-              <Ionicons name="logo-google" size={18} />
+              <SocialProviderIcon provider="google" size={18} />
               <Text className="text-sm font-medium text-foreground">
                 {socialLoading === "google" ? "Connecting..." : "Continue with Google"}
               </Text>
@@ -195,7 +198,11 @@ export default function SignupScreen() {
             isDisabled={socialLoading !== null}
           >
             <View className="flex-row items-center gap-2">
-              <Ionicons name="logo-github" size={18} />
+              <Ionicons
+                name="logo-github"
+                size={18}
+                color={isDark ? "#F0F6FC" : "#24292F"}
+              />
               <Text className="text-sm font-medium text-foreground">
                 {socialLoading === "github" ? "Connecting..." : "Continue with GitHub"}
               </Text>
@@ -204,7 +211,7 @@ export default function SignupScreen() {
         </View>
       </AuthFormSurface>
 
-      <Separator className="my-8 opacity-60" />
+      <Separator className="my-5 opacity-60" />
 
       <View className="flex-row justify-center gap-1.5 flex-wrap">
         <Text className="text-sm text-muted">Already have an account?</Text>

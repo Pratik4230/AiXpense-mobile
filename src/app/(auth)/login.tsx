@@ -18,6 +18,7 @@ import { authClient } from "@/lib/authClient";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthBrandHeader } from "@/components/auth/AuthBrandHeader";
 import { AuthFormSurface } from "@/components/auth/AuthFormSurface";
+import { SocialProviderIcon } from "@/components/auth/SocialProviderIcon";
 
 const schema = z.object({
   email: z.email("Invalid email address"),
@@ -300,7 +301,7 @@ export default function LoginScreen() {
             isDisabled={socialLoading !== null}
           >
             <View className="flex-row items-center gap-2">
-              <Ionicons name="logo-google" size={18} color={accentColor} />
+              <SocialProviderIcon provider="google" size={18} />
               <Text className="text-sm font-medium text-foreground">
                 {socialLoading === "google" ? "Connecting..." : "Continue with Google"}
               </Text>
@@ -312,7 +313,11 @@ export default function LoginScreen() {
             isDisabled={socialLoading !== null}
           >
             <View className="flex-row items-center gap-2">
-              <Ionicons name="logo-github" size={18} color={accentColor} />
+              <Ionicons
+                name="logo-github"
+                size={18}
+                color={isDark ? "#F0F6FC" : "#24292F"}
+              />
               <Text className="text-sm font-medium text-foreground">
                 {socialLoading === "github" ? "Connecting..." : "Continue with GitHub"}
               </Text>
