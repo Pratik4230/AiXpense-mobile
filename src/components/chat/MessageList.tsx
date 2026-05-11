@@ -5,10 +5,12 @@ import {
   useColorScheme,
   Pressable,
   Platform,
+  type TextStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Chip, BottomSheet } from "heroui-native";
 import { ToolLoading } from "./ToolLoading";
+import { AssistantMarkdown } from "./AssistantMarkdown";
 import { useCallback, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
@@ -763,18 +765,22 @@ function MessageBubble({
             ...(isUser && Platform.OS === "android" ? { elevation: 3 } : {}),
           }}
         >
-          {textParts.map((part, i) => (
-            <Text
-              key={`${message.id}-text-${i}`}
-              style={{
-                fontSize: 16,
-                lineHeight: 24,
-                color: isUser ? "#fff" : isDark ? "#e4e4e7" : "#1f2937",
-              }}
-            >
-              {isUser ? formatUserText(part.text) : part.text}
-            </Text>
-          ))}
+          {textParts.map((part, i) => {
+            const textStyle: TextStyle = {
+              fontSize: 16,
+              lineHeight: 24,
+              color: isUser ? "#fff" : isDark ? "#e4e4e7" : "#1f2937",
+            };
+            return isUser ? (
+              <Text key={`${message.id}-text-${i}`} style={textStyle}>
+                {formatUserText(part.text)}
+              </Text>
+            ) : (
+              <AssistantMarkdown key={`${message.id}-text-${i}`} isDark={isDark}>
+                {part.text}
+              </AssistantMarkdown>
+            );
+          })}
         </View>
       )}
     </View>

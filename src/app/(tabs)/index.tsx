@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -6,6 +12,7 @@ import {
   ActivityIndicator,
   useColorScheme,
   Platform,
+  AppState,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useThemeColor } from "heroui-native";
@@ -36,6 +43,11 @@ import {
   useAppendMessages,
 } from "@/services/conversations";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchStreakStatus } from "@/services/streak";
+import { useStreakReminder } from "@/hooks/useStreakReminder";
+import { StreakBanner } from "@/components/streak/StreakBanner";
+import { api } from "@/lib/api";
 
 function ChatSessionLoader({
   conversationId,
@@ -86,7 +98,38 @@ function ChatSession({
   onConversationCreated: (id: string) => void;
 }) {
   const { data: session } = useSession();
-  const isPremium = Boolean((session?.user as { isPremium?: boolean } | undefined)?.isPremium);
+  const queryClient = useQueryClient();
+
+  const { data: streak, isLoading: streakLoading } = useQuery({
+    queryKey: ["streak-status"],
+    queryFn: fetchStreakStatus,
+    enabled: !!session?.user,
+  });
+
+  const { data: trialsData } = useQuery({
+    queryKey: ["user", "trials"],
+    queryFn: () =>
+      api
+        .get<{ freeTrials: number | null; isPremium: boolean }>(
+          "/api/user/trials",
+        )
+        .then((r) => r.data),
+    enabled: !!session?.user,
+  });
+
+  const isPremium = trialsData?.isPremium ?? false;
+
+  useStreakReminder(streak);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        void queryClient.invalidateQueries({ queryKey: ["streak-status"] });
+        void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
+      }
+    });
+    return () => sub.remove();
+  }, [queryClient]);
 
   const [input, setInput] = useState("");
   const [selectedTransaction, setSelectedTransaction] =
@@ -113,6 +156,18 @@ function ChatSession({
   }, [conversationId]);
 
   const cookies = authClient.getCookie();
+  const chatHeaders = useMemo(() => {
+    const h: Record<string, string> = {
+      "X-AiXpense-Client": "native",
+    };
+    if (process.env.EXPO_PUBLIC_AIXPENSE_MOBILE_STREAK_KEY) {
+      h["X-AiXpense-Mobile-Key"] =
+        process.env.EXPO_PUBLIC_AIXPENSE_MOBILE_STREAK_KEY;
+    }
+    if (cookies) h.Cookie = cookies;
+    return h;
+  }, [cookies]);
+
   const { height } = useReanimatedKeyboardAnimation();
 
   const fakeViewStyle = useAnimatedStyle(() => ({
@@ -127,13 +182,22 @@ function ChatSession({
     transport: new DefaultChatTransport({
       api: generateAPIUrl("/api/chat"),
       fetch: expoFetch as unknown as typeof globalThis.fetch,
-      headers: cookies ? { Cookie: cookies } : undefined,
+      headers: chatHeaders,
     }),
     onError: (err) => console.error("Chat error:", err),
   });
 
   const isStreaming = status === "streaming";
   const prevStatusRef = useRef(status);
+
+  const wasStreamingRef = useRef(false);
+  useEffect(() => {
+    if (wasStreamingRef.current && status === "ready") {
+      void queryClient.invalidateQueries({ queryKey: ["streak-status"] });
+      void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
+    }
+    wasStreamingRef.current = status === "streaming";
+  }, [status, queryClient]);
 
   // Saving messages logic ported from web ChatView
   const saveMessages = useCallback(
@@ -363,6 +427,7 @@ function ChatSession({
       )}
 
       <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
+        <StreakBanner streak={streak} isLoading={streakLoading} />
         {messages.length === 0 ? (
           <ChatEmptyState onSuggestion={handleSuggestion} />
         ) : (
