@@ -310,7 +310,11 @@ function ChatSession({
     if (isStreaming) return;
 
     if (selectedTransaction) {
-      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}]`;
+      const cur =
+        selectedTransaction.currency != null && selectedTransaction.currency !== ""
+          ? `, currency=${selectedTransaction.currency}`
+          : "";
+      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
 
       if (selectedTransaction.action === "delete") {
         sendMessage({ text: prefix });
@@ -339,7 +343,11 @@ function ChatSession({
     if (!trimmed || isStreaming) return;
 
     if (selectedTransaction) {
-      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}]`;
+      const cur =
+        selectedTransaction.currency != null && selectedTransaction.currency !== ""
+          ? `, currency=${selectedTransaction.currency}`
+          : "";
+      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
       if (selectedTransaction.action === "delete") return;
       sendMessage({ text: `${prefix} ${trimmed}` });
       setInput("");
@@ -361,8 +369,9 @@ function ChatSession({
     type: "expense" | "income",
     item: string,
     amount: number,
+    currency?: string,
   ) => {
-    setSelectedTransaction({ id, type, item, amount, action: "edit" });
+    setSelectedTransaction({ id, type, item, amount, currency, action: "edit" });
   };
 
   const handleDelete = (
@@ -370,8 +379,9 @@ function ChatSession({
     type: "expense" | "income",
     item: string,
     amount: number,
+    currency?: string,
   ) => {
-    setSelectedTransaction({ id, type, item, amount, action: "delete" });
+    setSelectedTransaction({ id, type, item, amount, currency, action: "delete" });
   };
 
   const [accentColor] = useThemeColor(["accent"]);

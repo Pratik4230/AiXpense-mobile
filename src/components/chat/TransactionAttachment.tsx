@@ -7,6 +7,8 @@ export interface SelectedTransaction {
   type: "expense" | "income";
   item: string;
   amount: number;
+  /** ISO 4217 code stored on the transaction when known */
+  currency?: string;
   action: "edit" | "delete";
 }
 
@@ -59,7 +61,7 @@ export function TransactionAttachment({ transaction, onRemove }: Props) {
             flex: 1,
           }}
         >
-          {isDelete ? "Delete" : "Edit"}: {transaction.item} ({format(transaction.amount)})
+          {`${isDelete ? "Delete" : "Edit"}: ${transaction.item} (${format(transaction.amount, transaction.currency)})`}
         </Text>
       </View>
       <Pressable

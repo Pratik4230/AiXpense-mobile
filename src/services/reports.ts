@@ -37,6 +37,7 @@ export interface TopExpense {
   amount: number;
   category: string;
   date: string;
+  currency?: string;
 }
 
 export interface ReportsResponse {

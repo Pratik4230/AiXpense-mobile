@@ -31,7 +31,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 export function BudgetCard({ budget, existingCategories }: Props) {
   const editSheetRef = useRef<BudgetSheetRef>(null);
   const deleteMutation = useDeleteBudget();
-  const { code: currencyCode } = useCurrency();
+  const { code: profileCurrency } = useCurrency();
+  const budgetCurrency = budget.currency ?? profileCurrency;
   const [dangerColor, mutedColor, accentColor] = useThemeColor([
     "danger",
     "muted",
@@ -74,7 +75,7 @@ export function BudgetCard({ budget, existingCategories }: Props) {
                 {budget.category}
               </Text>
               <Text className="text-xs text-muted">
-                {formatMoney(budget.amount, currencyCode)} / month
+                {formatMoney(budget.amount, budgetCurrency)} / month
               </Text>
             </View>
           </View>
@@ -122,7 +123,7 @@ export function BudgetCard({ budget, existingCategories }: Props) {
           <BudgetProgressBar
             spent={budget.spent}
             amount={budget.amount}
-            currencyCode={currencyCode}
+            currencyCode={budgetCurrency}
           />
         </Card.Body>
       </Card>

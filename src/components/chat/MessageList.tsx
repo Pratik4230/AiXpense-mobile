@@ -52,6 +52,7 @@ function CardContent({
   isDark,
   accent,
   minWidth,
+  storedCurrency,
 }: {
   type: "expense" | "income";
   item: string;
@@ -61,6 +62,8 @@ function CardContent({
   isDark: boolean;
   accent: string;
   minWidth: number;
+  /** ISO currency stored on the transaction (if known); when missing, UI falls back to profile currency */
+  storedCurrency?: string;
 }) {
   const { format } = useCurrency();
   const isExpense = type === "expense";
@@ -103,7 +106,7 @@ function CardContent({
           marginBottom: 2,
         }}
       >
-        {isExpense ? format(amount) : `+${format(amount)}`}
+        {isExpense ? format(amount, storedCurrency) : `+${format(amount, storedCurrency)}`}
       </Text>
       <Text style={{ fontSize: 14, color: isDark ? "#d4d4d8" : "#3f3f46" }}>
         {item}
@@ -142,6 +145,7 @@ interface ActionTarget {
   type: "expense" | "income";
   item: string;
   amount: number;
+  currency?: string;
 }
 
 function CardActionSheet({
@@ -152,8 +156,8 @@ function CardActionSheet({
 }: {
   target: ActionTarget | null;
   onClose: () => void;
-  onEdit: (id: string, type: "expense" | "income", item: string, amount: number) => void;
-  onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+  onEdit: (id: string, type: "expense" | "income", item: string, amount: number, currency?: string) => void;
+  onDelete: (id: string, type: "expense" | "income", item: string, amount: number, currency?: string) => void;
 }) {
   const isDark = useColorScheme() === "dark";
   const { format } = useCurrency();
@@ -182,14 +186,14 @@ function CardActionSheet({
                 marginBottom: 20,
               }}
             >
-              {target ? format(target.amount) : ""}
+              {target ? format(target.amount, target.currency) : ""}
             </Text>
 
             <Pressable
               onPress={() => {
                 if (!target) return;
                 onClose();
-                onEdit(target.id, target.type, target.item, target.amount);
+                onEdit(target.id, target.type, target.item, target.amount, target.currency);
               }}
               style={({ pressed }) => ({
                 flexDirection: "row",
@@ -238,7 +242,7 @@ function CardActionSheet({
               onPress={() => {
                 if (!target) return;
                 onClose();
-                onDelete(target.id, target.type, target.item, target.amount);
+                onDelete(target.id, target.type, target.item, target.amount, target.currency);
               }}
               style={({ pressed }) => ({
                 flexDirection: "row",
@@ -290,6 +294,7 @@ function SavedCard({
   subcategory,
   isOutdated,
   onLongPress,
+  storedCurrency,
 }: {
   id?: string;
   type: "expense" | "income";
@@ -299,6 +304,7 @@ function SavedCard({
   subcategory?: string;
   isOutdated?: boolean;
   onLongPress?: () => void;
+  storedCurrency?: string;
 }) {
   const isDark = useColorScheme() === "dark";
   const { width } = useWindowDimensions();
@@ -318,6 +324,7 @@ function SavedCard({
         isDark={isDark}
         accent={accent}
         minWidth={minWidth}
+        storedCurrency={storedCurrency}
       />
     </View>
   );
@@ -341,10 +348,12 @@ function DeletedCard({
   type,
   item,
   amount,
+  currency,
 }: {
   type: "expense" | "income";
   item: string;
   amount: number;
+  currency?: string;
 }) {
   const isDark = useColorScheme() === "dark";
   const { format } = useCurrency();
@@ -387,7 +396,7 @@ function DeletedCard({
           marginBottom: 2,
         }}
       >
-        {format(amount)}
+        {format(amount, currency)}
       </Text>
       <Text
         style={{
@@ -408,12 +417,14 @@ function UpdatedCardContent({
   amount,
   category,
   isDark,
+  storedCurrency,
 }: {
   type: "expense" | "income";
   item: string;
   amount: number;
   category: string;
   isDark: boolean;
+  storedCurrency?: string;
 }) {
   const { format } = useCurrency();
   return (
@@ -456,7 +467,7 @@ function UpdatedCardContent({
           marginBottom: 2,
         }}
       >
-        {format(amount)}
+        {format(amount, storedCurrency)}
       </Text>
       <Text
         style={{
@@ -500,6 +511,7 @@ function UpdatedCard({
   item,
   amount,
   category,
+  storedCurrency,
   isOutdated,
   onLongPress,
 }: {
@@ -508,6 +520,7 @@ function UpdatedCard({
   item: string;
   amount: number;
   category: string;
+  storedCurrency?: string;
   isOutdated?: boolean;
   onLongPress?: () => void;
 }) {
@@ -515,7 +528,14 @@ function UpdatedCard({
 
   const content = (
     <View style={{ opacity: isOutdated ? 0.45 : 1 }}>
-      <UpdatedCardContent type={type} item={item} amount={amount} category={category} isDark={isDark} />
+      <UpdatedCardContent
+        type={type}
+        item={item}
+        amount={amount}
+        category={category}
+        isDark={isDark}
+        storedCurrency={storedCurrency}
+      />
     </View>
   );
 
@@ -557,7 +577,16 @@ function renderToolCard(
           category={e.category}
           subcategory={e.subcategory}
           isOutdated={isOutdated(e.id)}
-          onLongPress={() => setActionTarget({ id: e.id, type: "expense", item: e.item, amount: e.amount })}
+          onLongPress={() =>
+            setActionTarget({
+              id: e.id,
+              type: "expense",
+              item: e.item,
+              amount: e.amount,
+              currency: e.currency,
+            })
+          }
+          storedCurrency={e.currency}
         />
       );
     }
@@ -579,7 +608,16 @@ function renderToolCard(
           category={inc.category}
           subcategory={inc.subcategory}
           isOutdated={isOutdated(inc.id)}
-          onLongPress={() => setActionTarget({ id: inc.id, type: "income", item: inc.source, amount: inc.amount })}
+          onLongPress={() =>
+            setActionTarget({
+              id: inc.id,
+              type: "income",
+              item: inc.source,
+              amount: inc.amount,
+              currency: inc.currency,
+            })
+          }
+          storedCurrency={inc.currency}
         />
       );
     }
@@ -609,6 +647,7 @@ function renderToolCard(
           type={d.type as "expense" | "income"}
           item={d.item}
           amount={d.amount}
+          currency={d.currency}
         />
       );
     }
@@ -632,8 +671,17 @@ function renderToolCard(
           item={t.item}
           amount={t.amount}
           category={t.category}
+          storedCurrency={t.currency}
           isOutdated={isOutdated(t.id)}
-          onLongPress={() => setActionTarget({ id: t.id, type: t.type, item: t.item, amount: t.amount })}
+          onLongPress={() =>
+            setActionTarget({
+              id: t.id,
+              type: t.type as "expense" | "income",
+              item: t.item,
+              amount: t.amount,
+              currency: t.currency,
+            })
+          }
         />
       );
     }
@@ -795,8 +843,8 @@ function MessageBubble({
 interface Props {
   messages: ChatMessage[];
   isStreaming: boolean;
-  onEdit: (id: string, type: "expense" | "income", item: string, amount: number) => void;
-  onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
+  onEdit: (id: string, type: "expense" | "income", item: string, amount: number, currency?: string) => void;
+  onDelete: (id: string, type: "expense" | "income", item: string, amount: number, currency?: string) => void;
   outdatedIds: Map<string, string>;
   onScroll?: any;
 }

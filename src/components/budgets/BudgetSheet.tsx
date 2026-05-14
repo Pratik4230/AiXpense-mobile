@@ -49,6 +49,8 @@ export const BudgetSheet = forwardRef<BudgetSheetRef, Props>(
     const updateMutation = useUpdateBudget();
     const isPending = createMutation.isPending || updateMutation.isPending;
     const { code: accountCurrencyCode } = useCurrency();
+    const limitCurrencyCode =
+      isEdit && existing?.currency ? existing.currency : accountCurrencyCode;
 
     useImperativeHandle(ref, () => ({
       open: () => setIsOpen(true),
@@ -190,7 +192,7 @@ export const BudgetSheet = forwardRef<BudgetSheetRef, Props>(
                 name="amount"
                 render={({ field: { onChange, value } }) => (
                   <TextField isInvalid={!!errors.amount}>
-                    <Label>Monthly limit ({accountCurrencyCode})</Label>
+                    <Label>Monthly limit ({limitCurrencyCode})</Label>
                     <Input
                       placeholder="e.g. 5000"
                       value={value}

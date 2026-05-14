@@ -93,7 +93,7 @@ function TopExpensesInner({
                 </View>
               </View>
               <Text className="text-sm font-bold text-foreground shrink-0">
-                {formatMoney(e.amount, currencyCode)}
+                {formatMoney(e.amount, e.currency ?? currencyCode)}
               </Text>
             </View>
           ))}

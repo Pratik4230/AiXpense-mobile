@@ -5,4 +5,5 @@ export interface Budget {
   category: Category;
   amount: number;
   spent: number;
+  currency: string;
 }
