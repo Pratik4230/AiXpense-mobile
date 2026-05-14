@@ -1,25 +1,11 @@
-import { View, Text, useColorScheme, Pressable } from "react-native";
+import { View, Text, useColorScheme } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
 
-const QUICK_ACTIONS = [
-  { icon: "☕", label: "Coffee ₹80" },
-  { icon: "🍕", label: "Lunch ₹250" },
-  { icon: "💰", label: "Salary ₹50,000" },
-  { icon: "🚕", label: "Cab ₹150" },
-  { icon: "🛒", label: "Groceries ₹1,200" },
-  { icon: "💡", label: "Electricity ₹800" },
-];
-
-interface Props {
-  onSuggestion: (s: string) => void;
-}
-
-export function ChatEmptyState({ onSuggestion }: Props) {
+export function ChatEmptyState() {
   const isDark = useColorScheme() === "dark";
 
   return (
-    <View className="flex-1 items-center justify-center px-6 pb-8">
+    <View className="flex-1 items-center justify-center px-6 pb-8 pt-2">
       <LinearGradient
         colors={
           isDark
@@ -48,28 +34,12 @@ export function ChatEmptyState({ onSuggestion }: Props) {
       <Text className="text-[26px] font-bold text-foreground text-center tracking-tight mb-3">
         What did you spend today?
       </Text>
-      <Text className="text-[15px] text-muted text-center leading-relaxed mb-9 max-w-[320px]">
-        Describe expenses or income in plain language. Tap a shortcut below to
-        try it instantly.
+      <Text className="text-[15px] text-muted text-center leading-relaxed mb-2 max-w-[320px]">
+        Describe expenses or income in plain language.
       </Text>
-
-      <View className="flex-row flex-wrap gap-2 justify-center max-w-[360px]">
-        {QUICK_ACTIONS.map((a) => (
-          <Pressable
-            key={a.label}
-            onPress={() => {
-              void Haptics.selectionAsync();
-              onSuggestion(a.label);
-            }}
-            className="flex-row items-center gap-2 rounded-2xl border border-separator bg-surface px-3.5 py-2.5 active:opacity-80"
-          >
-            <Text className="text-base">{a.icon}</Text>
-            <Text className="text-[13px] font-medium text-foreground">
-              {a.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <Text className="text-[14px] text-muted text-center leading-relaxed max-w-[320px]">
+        Tap a shortcut above the message box to try it instantly.
+      </Text>
     </View>
   );
 }

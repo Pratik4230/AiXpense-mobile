@@ -2,17 +2,24 @@ import { memo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Card, Chip, Skeleton, useThemeColor } from "heroui-native";
 import { Ionicons } from "@expo/vector-icons";
-import { fmt } from "./utils";
+import { formatMoney } from "./utils";
 import type { TopExpense, ReportMode } from "@/services/reports";
 
 interface Props {
   data?: TopExpense[];
   isLoading: boolean;
   mode: ReportMode;
+  currencyCode: string;
   onViewAll?: () => void;
 }
 
-function TopExpensesInner({ data, isLoading, mode, onViewAll }: Props) {
+function TopExpensesInner({
+  data,
+  isLoading,
+  mode,
+  currencyCode,
+  onViewAll,
+}: Props) {
   const [accentColor, mutedColor] = useThemeColor(["accent", "muted"]);
 
   return (
@@ -86,7 +93,7 @@ function TopExpensesInner({ data, isLoading, mode, onViewAll }: Props) {
                 </View>
               </View>
               <Text className="text-sm font-bold text-foreground shrink-0">
-                {fmt(e.amount)}
+                {formatMoney(e.amount, currencyCode)}
               </Text>
             </View>
           ))}

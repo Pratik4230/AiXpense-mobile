@@ -17,16 +17,9 @@ import {
   type TransactionFilters,
 } from "@/services/transactions";
 import { TransactionFiltersSheet } from "@/components/transactions/TransactionFiltersSheet";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const ROW_HEIGHT = 64;
-
-function fmt(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-IN", {
@@ -38,9 +31,16 @@ function formatDate(dateStr: string) {
 interface RowProps {
   tx: Transaction;
   isDark: boolean;
+  defaultCurrency: string;
+  formatAmount: (amount: number, currencyCode: string) => string;
 }
 
-function TransactionRow({ tx, isDark }: RowProps) {
+function TransactionRow({
+  tx,
+  isDark,
+  defaultCurrency,
+  formatAmount,
+}: RowProps) {
   const isExpense = tx.type === "expense";
   return (
     <View
@@ -95,7 +95,7 @@ function TransactionRow({ tx, isDark }: RowProps) {
         style={{ color: isExpense ? "#ef4444" : "#10b981" }}
       >
         {isExpense ? "-" : "+"}
-        {fmt(tx.amount)}
+        {formatAmount(tx.amount, tx.currency ?? defaultCurrency)}
       </Text>
     </View>
   );
@@ -113,6 +113,14 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isDark = useColorScheme() === "dark";
+  const { code: accountCurrency } = useCurrency();
+
+  const formatRow = (amount: number, currencyCode: string) =>
+    new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: currencyCode,
+      maximumFractionDigits: 0,
+    }).format(amount);
 
   const initialType =
     mode === "income" ? "income" : mode === "expense" ? "expense" : "all";
@@ -142,7 +150,12 @@ export default function TransactionsScreen() {
   };
 
   const renderItem = ({ item }: { item: Transaction }) => (
-    <TransactionRow tx={item} isDark={isDark} />
+    <TransactionRow
+      tx={item}
+      isDark={isDark}
+      defaultCurrency={accountCurrency}
+      formatAmount={formatRow}
+    />
   );
 
   const ListFooter = isFetchingNextPage ? (

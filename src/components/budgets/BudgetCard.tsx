@@ -7,6 +7,8 @@ import { BudgetSheet } from "./BudgetSheet";
 import type { BudgetSheetRef } from "./BudgetSheet";
 import { useDeleteBudget } from "@/services/budgets";
 import type { Budget } from "@/types/budget";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatMoney } from "@/components/reports/utils";
 
 interface Props {
   budget: Budget;
@@ -29,6 +31,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 export function BudgetCard({ budget, existingCategories }: Props) {
   const editSheetRef = useRef<BudgetSheetRef>(null);
   const deleteMutation = useDeleteBudget();
+  const { code: currencyCode } = useCurrency();
   const [dangerColor, mutedColor, accentColor] = useThemeColor([
     "danger",
     "muted",
@@ -71,8 +74,7 @@ export function BudgetCard({ budget, existingCategories }: Props) {
                 {budget.category}
               </Text>
               <Text className="text-xs text-muted">
-                {"\u20B9"}
-                {budget.amount.toLocaleString("en-IN")} / month
+                {formatMoney(budget.amount, currencyCode)} / month
               </Text>
             </View>
           </View>
@@ -117,7 +119,11 @@ export function BudgetCard({ budget, existingCategories }: Props) {
         </Card.Header>
 
         <Card.Body className="px-4 pb-4 pt-1">
-          <BudgetProgressBar spent={budget.spent} amount={budget.amount} />
+          <BudgetProgressBar
+            spent={budget.spent}
+            amount={budget.amount}
+            currencyCode={currencyCode}
+          />
         </Card.Body>
       </Card>
 

@@ -1,12 +1,13 @@
 import { memo, useMemo } from "react";
 import { View, Text } from "react-native";
 import { Card, Skeleton, useThemeColor } from "heroui-native";
-import { fmt } from "./utils";
+import { formatMoney } from "./utils";
 import type { BudgetVsActualPoint } from "@/services/reports";
 
 interface Props {
   data?: BudgetVsActualPoint[];
   isLoading: boolean;
+  currencyCode: string;
 }
 
 function barTone(
@@ -20,7 +21,7 @@ function barTone(
   return success;
 }
 
-function BudgetVsActualInner({ data, isLoading }: Props) {
+function BudgetVsActualInner({ data, isLoading, currencyCode }: Props) {
   const [dangerColor, warningColor, successColor, trackColor] = useThemeColor([
     "danger",
     "warning",
@@ -78,7 +79,8 @@ function BudgetVsActualInner({ data, isLoading }: Props) {
                   className="text-xs font-bold shrink-0"
                   style={{ color }}
                 >
-                  {fmt(item.spent)} / {fmt(item.budget)}
+                  {formatMoney(item.spent, currencyCode)} /{" "}
+                  {formatMoney(item.budget, currencyCode)}
                 </Text>
               </View>
               <View

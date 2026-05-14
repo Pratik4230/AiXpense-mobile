@@ -23,6 +23,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const RANGES: { label: string; value: ReportRange }[] = [
   { label: "1M", value: "1m" },
@@ -37,6 +38,7 @@ export default function ReportsScreen() {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const [accentColor] = useThemeColor(["accent"]);
+  const { code: currencyCode, symbol: currencySymbol } = useCurrency();
 
   const [range, setRange] = useState<ReportRange>("1m");
   const [mode, setMode] = useState<ReportMode>("expense");
@@ -120,6 +122,7 @@ export default function ReportsScreen() {
             data={report.data?.overview}
             isLoading={report.isPending}
             mode={mode}
+            currencyCode={currencyCode}
           />
 
           <TrendChart
@@ -128,17 +131,20 @@ export default function ReportsScreen() {
             range={range}
             mode={mode}
             chartWidth={chartWidth}
+            yAxisLabelPrefix={currencySymbol}
           />
 
           <CategoryBreakdown
             data={report.data?.categories}
             isLoading={report.isPending}
+            currencyCode={currencyCode}
           />
 
           <TopExpenses
             data={report.data?.topExpenses}
             isLoading={report.isPending}
             mode={mode}
+            currencyCode={currencyCode}
             onViewAll={() => router.push(`/transactions?mode=${mode}`)}
           />
 
@@ -146,6 +152,7 @@ export default function ReportsScreen() {
             <BudgetVsActual
               data={report.data?.budgetVsActual ?? undefined}
               isLoading={report.isPending}
+              currencyCode={currencyCode}
             />
           )}
         </View>

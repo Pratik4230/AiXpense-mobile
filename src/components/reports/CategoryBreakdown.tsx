@@ -2,15 +2,16 @@ import { memo, useMemo, useCallback } from "react";
 import { View, Text } from "react-native";
 import { Card, Skeleton, useThemeColor } from "heroui-native";
 import { PieChart } from "react-native-gifted-charts";
-import { CHART_COLORS, fmt } from "./utils";
+import { CHART_COLORS, formatMoney } from "./utils";
 import type { CategoryPoint } from "@/services/reports";
 
 interface Props {
   data?: CategoryPoint[];
   isLoading: boolean;
+  currencyCode: string;
 }
 
-function CategoryBreakdownInner({ data, isLoading }: Props) {
+function CategoryBreakdownInner({ data, isLoading, currencyCode }: Props) {
   const [foregroundColor, backgroundColor] = useThemeColor([
     "foreground",
     "background",
@@ -38,11 +39,11 @@ function CategoryBreakdownInner({ data, isLoading }: Props) {
       <View className="items-center">
         <Text className="text-[11px] font-medium text-muted">Total</Text>
         <Text className="text-sm font-bold text-foreground mt-0.5">
-          {fmt(total)}
+          {formatMoney(total, currencyCode)}
         </Text>
       </View>
     ),
-    [total],
+    [total, currencyCode],
   );
 
   return (

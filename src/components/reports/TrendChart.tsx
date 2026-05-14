@@ -18,6 +18,8 @@ interface Props {
   range: ReportRange;
   mode: ReportMode;
   chartWidth: number;
+  /** Y-axis prefix (e.g. ₹ or $) from account currency */
+  yAxisLabelPrefix: string;
 }
 
 function TrendChartInner({
@@ -26,6 +28,7 @@ function TrendChartInner({
   range,
   mode,
   chartWidth,
+  yAxisLabelPrefix,
 }: Props) {
   const isDark = useColorScheme() === "dark";
   const [accentColor] = useThemeColor(["accent"]);
@@ -88,7 +91,7 @@ function TrendChartInner({
           hideRules
           isAnimated={Platform.OS === "ios"}
           animationDuration={320}
-          yAxisLabelPrefix="₹"
+          yAxisLabelPrefix={yAxisLabelPrefix}
           formatYLabel={(v) => {
             const num = Number(v);
             return num >= 1000 ? `${(num / 1000).toFixed(0)}k` : v;

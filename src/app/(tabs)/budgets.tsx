@@ -9,6 +9,7 @@ import { BudgetSheet } from "@/components/budgets/BudgetSheet";
 import type { BudgetSheetRef } from "@/components/budgets/BudgetSheet";
 import { useBudgets } from "@/services/budgets";
 import type { Budget } from "@/types/budget";
+import { useCurrency } from "@/hooks/useCurrency";
 
 function BudgetSkeleton() {
   return (
@@ -30,6 +31,7 @@ export default function BudgetsScreen() {
   const [accentColor] = useThemeColor(["accent"]);
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 20) + 8;
+  const { format } = useCurrency();
 
   const existingCategories = budgets?.map((b) => b.category) ?? [];
   const totalBudget = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0;
@@ -79,15 +81,13 @@ export default function BudgetsScreen() {
                 <Text
                   className={`text-2xl font-bold tracking-tight ${overAll ? "text-danger" : "text-foreground"}`}
                 >
-                  {"\u20B9"}
-                  {totalSpent.toLocaleString("en-IN")}
+                  {format(totalSpent)}
                 </Text>
               </View>
               <View className="items-end">
                 <Text className="text-xs text-muted mb-1">Total limit</Text>
                 <Text className="text-2xl font-bold text-foreground tracking-tight">
-                  {"\u20B9"}
-                  {totalBudget.toLocaleString("en-IN")}
+                  {format(totalBudget)}
                 </Text>
               </View>
             </View>

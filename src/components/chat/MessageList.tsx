@@ -15,15 +15,12 @@ import { useCallback, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import Animated from "react-native-reanimated";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   parts: any[];
-}
-
-function fmt(n: number) {
-  return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2 });
 }
 
 function Divider({ isDark }: { isDark: boolean }) {
@@ -65,6 +62,7 @@ function CardContent({
   accent: string;
   minWidth: number;
 }) {
+  const { format } = useCurrency();
   const isExpense = type === "expense";
   return (
     <View
@@ -105,7 +103,7 @@ function CardContent({
           marginBottom: 2,
         }}
       >
-        {isExpense ? fmt(amount) : `+${fmt(amount)}`}
+        {isExpense ? format(amount) : `+${format(amount)}`}
       </Text>
       <Text style={{ fontSize: 14, color: isDark ? "#d4d4d8" : "#3f3f46" }}>
         {item}
@@ -158,6 +156,7 @@ function CardActionSheet({
   onDelete: (id: string, type: "expense" | "income", item: string, amount: number) => void;
 }) {
   const isDark = useColorScheme() === "dark";
+  const { format } = useCurrency();
 
   return (
     <BottomSheet isOpen={!!target} onOpenChange={(v) => !v && onClose()}>
@@ -183,7 +182,7 @@ function CardActionSheet({
                 marginBottom: 20,
               }}
             >
-              {target ? fmt(target.amount) : ""}
+              {target ? format(target.amount) : ""}
             </Text>
 
             <Pressable
@@ -348,6 +347,7 @@ function DeletedCard({
   amount: number;
 }) {
   const isDark = useColorScheme() === "dark";
+  const { format } = useCurrency();
 
   return (
     <View
@@ -387,7 +387,7 @@ function DeletedCard({
           marginBottom: 2,
         }}
       >
-        {fmt(amount)}
+        {format(amount)}
       </Text>
       <Text
         style={{
@@ -415,6 +415,7 @@ function UpdatedCardContent({
   category: string;
   isDark: boolean;
 }) {
+  const { format } = useCurrency();
   return (
     <View
       style={{
@@ -455,7 +456,7 @@ function UpdatedCardContent({
           marginBottom: 2,
         }}
       >
-        {fmt(amount)}
+        {format(amount)}
       </Text>
       <Text
         style={{
@@ -644,7 +645,7 @@ function renderToolCard(
   return null;
 }
 
-function formatUserText(text: string): string {
+function formatUserText(text: string, currencySymbol: string): string {
   if (!text.includes("[ATTACHED_TRANSACTION:")) return text;
   const actionMatch = text.match(/action=(\w+)/);
   const itemMatch = text.match(/item=([^,\]]+)/);
@@ -654,8 +655,11 @@ function formatUserText(text: string): string {
   const amount = amountMatch?.[1];
   const userText = text.split("]").slice(1).join("]").trim();
 
-  if (action === "delete") return `Delete: ${itemName} (\u20b9${amount})`;
-  return userText ? `Edit ${itemName}: ${userText}` : `Edit: ${itemName} (\u20b9${amount})`;
+  if (action === "delete")
+    return `Delete: ${itemName} (${currencySymbol}${amount})`;
+  return userText
+    ? `Edit ${itemName}: ${userText}`
+    : `Edit: ${itemName} (${currencySymbol}${amount})`;
 }
 
 function MessageBubble({
@@ -670,6 +674,7 @@ function MessageBubble({
   outdatedIds: Map<string, string>;
 }) {
   const { width: windowWidth } = useWindowDimensions();
+  const { symbol: currencySymbol } = useCurrency();
   const isUser = message.role === "user";
   const textParts = message.parts?.filter((p) => p.type === "text") ?? [];
   const imageFileParts =
@@ -773,7 +778,7 @@ function MessageBubble({
             };
             return isUser ? (
               <Text key={`${message.id}-text-${i}`} style={textStyle}>
-                {formatUserText(part.text)}
+                {formatUserText(part.text, currencySymbol)}
               </Text>
             ) : (
               <AssistantMarkdown key={`${message.id}-text-${i}`} isDark={isDark}>

@@ -19,17 +19,14 @@ import { useThemeColor } from "heroui-native";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { fetch as expoFetch } from "expo/fetch";
-import {
-  KeyboardStickyView,
-  useReanimatedKeyboardAnimation,
-} from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "@/components/ui";
 import { authClient, useSession } from "@/lib/authClient";
 import { generateAPIUrl } from "@/utils/api";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
+import { QuickSuggestionBar } from "@/components/chat/QuickSuggestionBar";
+import { ComposerKeyboardOrSticky } from "@/components/chat/ComposerKeyboardOrSticky";
 import {
   TransactionAttachment,
   type SelectedTransaction,
@@ -167,12 +164,6 @@ function ChatSession({
     if (cookies) h.Cookie = cookies;
     return h;
   }, [cookies]);
-
-  const { height } = useReanimatedKeyboardAnimation();
-
-  const fakeViewStyle = useAnimatedStyle(() => ({
-    height: Math.abs(height.value),
-  }));
 
   const lastSavedCountRef = useRef(initialMessages.length);
   const pendingSaveRef = useRef(false);
@@ -429,7 +420,7 @@ function ChatSession({
       <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
         <StreakBanner streak={streak} isLoading={streakLoading} />
         {messages.length === 0 ? (
-          <ChatEmptyState onSuggestion={handleSuggestion} />
+          <ChatEmptyState />
         ) : (
           <MessageList
             messages={messages as any}
@@ -441,9 +432,13 @@ function ChatSession({
         )}
       </View>
 
-      <Animated.View style={fakeViewStyle} />
-
-      <KeyboardStickyView offset={{ closed: 0, opened: 0 }}>
+      <ComposerKeyboardOrSticky>
+        {messages.length === 0 && (
+          <QuickSuggestionBar
+            onSuggestion={handleSuggestion}
+            disabled={isStreaming}
+          />
+        )}
         {selectedTransaction && (
           <TransactionAttachment
             transaction={selectedTransaction}
@@ -460,7 +455,7 @@ function ChatSession({
           onReceiptUploaded={handleReceiptUploaded}
           onVoiceTranscript={handleVoiceTranscript}
         />
-      </KeyboardStickyView>
+      </ComposerKeyboardOrSticky>
     </SafeAreaView>
   );
 }

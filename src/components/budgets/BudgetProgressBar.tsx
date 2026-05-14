@@ -1,11 +1,13 @@
 import { View, Text } from "react-native";
+import { formatMoney } from "@/components/reports/utils";
 
 interface Props {
   spent: number;
   amount: number;
+  currencyCode: string;
 }
 
-export function BudgetProgressBar({ spent, amount }: Props) {
+export function BudgetProgressBar({ spent, amount, currencyCode }: Props) {
   const raw = amount > 0 ? (spent / amount) * 100 : 0;
   const percent = Math.min(raw, 100);
   const overBudget = spent > amount;
@@ -28,15 +30,15 @@ export function BudgetProgressBar({ spent, amount }: Props) {
       </View>
       <View className="flex-row justify-between items-center">
         <Text className="text-xs text-muted">
-          ₹{spent.toLocaleString("en-IN")} spent
+          {formatMoney(spent, currencyCode)} spent
         </Text>
         {overBudget ? (
           <Text className="text-xs font-medium text-danger">
-            ₹{Math.abs(remaining).toLocaleString("en-IN")} over
+            {formatMoney(Math.abs(remaining), currencyCode)} over
           </Text>
         ) : (
           <Text className="text-xs text-muted">
-            ₹{remaining.toLocaleString("en-IN")} left
+            {formatMoney(remaining, currencyCode)} left
           </Text>
         )}
       </View>

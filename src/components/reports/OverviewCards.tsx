@@ -3,16 +3,17 @@ import { View } from "react-native";
 import { Card, Skeleton, useThemeColor } from "heroui-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { fmt } from "./utils";
+import { formatMoney } from "./utils";
 import type { OverviewData, ReportMode } from "@/services/reports";
 
 interface Props {
   data?: OverviewData;
   isLoading: boolean;
   mode: ReportMode;
+  currencyCode: string;
 }
 
-function OverviewCardsInner({ data, isLoading, mode }: Props) {
+function OverviewCardsInner({ data, isLoading, mode, currencyCode }: Props) {
   const [dangerColor, successColor, mutedColor] = useThemeColor([
     "danger",
     "success",
@@ -46,7 +47,7 @@ function OverviewCardsInner({ data, isLoading, mode }: Props) {
     () => [
       {
         label: isExpense ? "Total spent" : "Total earned",
-        value: fmt(data?.total ?? 0),
+        value: formatMoney(data?.total ?? 0, currencyCode),
         icon: "wallet-outline" as const,
         sub: `${Math.abs(change)}% vs last period`,
         subColor: trendColor,
@@ -66,18 +67,18 @@ function OverviewCardsInner({ data, isLoading, mode }: Props) {
             data.topCategory.slice(1)
           : "—",
         icon: "pricetag-outline" as const,
-        sub: fmt(data?.topCategoryAmount ?? 0),
+        sub: formatMoney(data?.topCategoryAmount ?? 0, currencyCode),
         subColor: mutedColor,
       },
       {
         label: isExpense ? "Largest expense" : "Largest income",
-        value: fmt(data?.largestExpense ?? 0),
+        value: formatMoney(data?.largestExpense ?? 0, currencyCode),
         icon: "arrow-up-outline" as const,
         sub: "Single transaction",
         subColor: mutedColor,
       },
     ],
-    [data, isExpense, change, trendColor, trendIcon, mutedColor],
+    [data, isExpense, change, trendColor, trendIcon, mutedColor, currencyCode],
   );
 
   if (isLoading) {

@@ -1,14 +1,10 @@
-let inrFormatter: Intl.NumberFormat | null = null;
-
-export function fmt(n: number) {
-  if (!inrFormatter) {
-    inrFormatter = new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    });
-  }
-  return inrFormatter.format(n);
+/** Format a whole-number money amount for dashboards (matches prior INR 0 decimals). */
+export function formatMoney(n: number, currencyCode: string): string {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currencyCode,
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 export const MONTH_NAMES = [

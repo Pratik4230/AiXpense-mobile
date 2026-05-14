@@ -1,5 +1,6 @@
 import { View, Text, Pressable, useColorScheme } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export interface SelectedTransaction {
   id: string;
@@ -14,12 +15,9 @@ interface Props {
   onRemove: () => void;
 }
 
-function fmt(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
-}
-
 export function TransactionAttachment({ transaction, onRemove }: Props) {
   const isDark = useColorScheme() === "dark";
+  const { format } = useCurrency();
   const isDelete = transaction.action === "delete";
 
   return (
@@ -61,7 +59,7 @@ export function TransactionAttachment({ transaction, onRemove }: Props) {
             flex: 1,
           }}
         >
-          {isDelete ? "Delete" : "Edit"}: {transaction.item} ({fmt(transaction.amount)})
+          {isDelete ? "Delete" : "Edit"}: {transaction.item} ({format(transaction.amount)})
         </Text>
       </View>
       <Pressable

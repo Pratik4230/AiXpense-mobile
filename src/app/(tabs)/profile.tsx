@@ -24,6 +24,7 @@ import { api } from "@/lib/api";
 import { SafeAreaView } from "@/components/ui";
 import { ReportIssueSheet } from "@/components/profile/ReportIssueSheet";
 import { MyIssuesList } from "@/components/profile/MyIssuesList";
+import { ProfileCurrencySection } from "@/components/profile/ProfileCurrencySection";
 
 function getInitials(name: string) {
   return name
@@ -262,6 +263,8 @@ export default function ProfileScreen() {
             </View>
           </Card.Body>
         </Card>
+
+        <ProfileCurrencySection />
 
         <Card className="mb-4 rounded-3xl border border-separator overflow-hidden">
           <Card.Body className="gap-4 py-5">

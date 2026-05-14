@@ -16,6 +16,7 @@ import { CATEGORIES } from "@/constants/expense";
 import { useCreateBudget, useUpdateBudget } from "@/services/budgets";
 import type { Budget } from "@/types/budget";
 import type { Category } from "@/constants/expense";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const schema = z.object({
   category: z.string().min(1, "Select a category"),
@@ -47,6 +48,7 @@ export const BudgetSheet = forwardRef<BudgetSheetRef, Props>(
     const createMutation = useCreateBudget();
     const updateMutation = useUpdateBudget();
     const isPending = createMutation.isPending || updateMutation.isPending;
+    const { code: accountCurrencyCode } = useCurrency();
 
     useImperativeHandle(ref, () => ({
       open: () => setIsOpen(true),
@@ -188,7 +190,7 @@ export const BudgetSheet = forwardRef<BudgetSheetRef, Props>(
                 name="amount"
                 render={({ field: { onChange, value } }) => (
                   <TextField isInvalid={!!errors.amount}>
-                    <Label>Monthly limit (₹)</Label>
+                    <Label>Monthly limit ({accountCurrencyCode})</Label>
                     <Input
                       placeholder="e.g. 5000"
                       value={value}
