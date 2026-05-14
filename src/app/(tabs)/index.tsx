@@ -25,7 +25,6 @@ import { generateAPIUrl } from "@/utils/api";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
-import { QuickSuggestionBar } from "@/components/chat/QuickSuggestionBar";
 import { ComposerKeyboardOrSticky } from "@/components/chat/ComposerKeyboardOrSticky";
 import {
   TransactionAttachment,
@@ -430,7 +429,10 @@ function ChatSession({
       <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
         <StreakBanner streak={streak} isLoading={streakLoading} />
         {messages.length === 0 ? (
-          <ChatEmptyState />
+          <ChatEmptyState
+            onSuggestionPress={handleSuggestion}
+            disabled={isStreaming}
+          />
         ) : (
           <MessageList
             messages={messages as any}
@@ -443,12 +445,6 @@ function ChatSession({
       </View>
 
       <ComposerKeyboardOrSticky>
-        {messages.length === 0 && (
-          <QuickSuggestionBar
-            onSuggestion={handleSuggestion}
-            disabled={isStreaming}
-          />
-        )}
         {selectedTransaction && (
           <TransactionAttachment
             transaction={selectedTransaction}
