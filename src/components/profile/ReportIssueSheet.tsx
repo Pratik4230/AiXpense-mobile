@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Alert } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import {
   BottomSheet,
@@ -11,6 +11,10 @@ import {
 } from "heroui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useReportIssue } from "@/hooks/queries/useIssues";
+import {
+  IssueMediaAttachments,
+  type IssueAttachment,
+} from "@/components/profile/IssueMediaAttachments";
 
 type IssueType = "bug" | "feature" | "other";
 
@@ -31,6 +35,8 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
   const [description, setDescription] = useState("");
   const [titleError, setTitleError] = useState("");
   const [descError, setDescError] = useState("");
+  const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
+  const [mediaUploading, setMediaUploading] = useState(false);
 
   const { mutate, isPending } = useReportIssue();
   const [mutedColor, accentColor] = useThemeColor(["muted", "accent"]);
@@ -41,6 +47,7 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
     setDescription("");
     setTitleError("");
     setDescError("");
+    setAttachments([]);
   };
 
   const handleClose = () => {
@@ -65,8 +72,21 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
     if (!valid) return;
 
     mutate(
-      { type, title: title.trim(), description: description.trim() },
-      { onSuccess: handleClose },
+      {
+        type,
+        title: title.trim(),
+        description: description.trim(),
+        mediaUrls: attachments.map((a) => a.url),
+        mediaFileIds: attachments.map((a) => a.fileId),
+      },
+      {
+        onSuccess: () => {
+          Alert.alert("Submitted", "Thanks — we'll look into your report.");
+          handleClose();
+        },
+        onError: () =>
+          Alert.alert("Error", "Failed to submit report. Please try again."),
+      },
     );
   };
 
@@ -80,7 +100,7 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
     >
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
-        <BottomSheet.Content snapPoints={["75%"]}>
+        <BottomSheet.Content snapPoints={["80%", "92%"]}>
           <KeyboardAwareScrollView
             contentContainerStyle={{
               paddingHorizontal: 20,
@@ -94,7 +114,8 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
               Report an issue
             </BottomSheet.Title>
             <Text className="text-sm text-muted leading-snug mt-1 mb-5">
-              We read every report. Include steps to reproduce for bugs.
+              We read every report. Add screenshots or videos and steps to
+              reproduce for bugs.
             </Text>
 
             <View className="gap-3 mb-5">
@@ -171,6 +192,12 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
                   <Text className="text-xs text-danger mt-1">{descError}</Text>
                 )}
               </TextField>
+
+              <IssueMediaAttachments
+                value={attachments}
+                onChange={setAttachments}
+                onUploadingChange={setMediaUploading}
+              />
             </View>
 
             <View className="flex-row gap-3">
@@ -179,7 +206,7 @@ export function ReportIssueSheet({ isOpen, onOpenChange }: Props) {
               </Button>
               <Button
                 onPress={handleSubmit}
-                isDisabled={isPending}
+                isDisabled={isPending || mediaUploading}
                 className="flex-1"
               >
                 <Button.Label>

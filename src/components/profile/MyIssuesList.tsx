@@ -4,7 +4,9 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
 import { Card, useThemeColor } from "heroui-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useMyIssues, type MyIssueItem } from "@/hooks/queries/useIssues";
@@ -88,6 +90,30 @@ function IssueCard({ issue }: { issue: MyIssueItem }) {
         >
           {issue.description}
         </Text>
+
+        {issue.mediaUrls.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="pl-10 mt-1"
+            contentContainerStyle={{ gap: 8 }}
+          >
+            {issue.mediaUrls.map((url) => (
+              <Image
+                key={url}
+                source={{ uri: url }}
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "rgba(0,0,0,0.08)",
+                }}
+                contentFit="cover"
+              />
+            ))}
+          </ScrollView>
+        )}
 
         {!!issue.adminNote && (
           <View className="flex-row items-start gap-2 rounded-xl border border-separator bg-surface px-3 py-2.5 mt-0.5">

@@ -23,6 +23,8 @@ export interface ReportIssuePayload {
   title: string;
   description: string;
   type: "bug" | "feature" | "other";
+  mediaUrls: string[];
+  mediaFileIds: string[];
 }
 
 export const issuesService = {
@@ -32,5 +34,5 @@ export const issuesService = {
       .then((r) => r.data),
 
   reportIssue: (payload: ReportIssuePayload) =>
-    api.post("/api/issues", { ...payload, mediaUrls: [], mediaFileIds: [] }).then((r) => r.data),
+    api.post("/api/issues", payload).then((r) => r.data),
 };

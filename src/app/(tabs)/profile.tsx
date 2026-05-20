@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import {
   Avatar,
@@ -42,6 +43,7 @@ const SECTION_LABEL =
   "text-[11px] font-semibold text-muted uppercase tracking-[0.14em]";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
   const user = session?.user as any;
   const insets = useSafeAreaInsets();
@@ -265,6 +267,36 @@ export default function ProfileScreen() {
         </Card>
 
         <ProfileCurrencySection />
+
+        <Card className="mb-4 rounded-3xl border border-separator overflow-hidden">
+          <Card.Body className="py-2">
+            <Text className={`${SECTION_LABEL} px-1 pt-3 pb-2`}>Money tools</Text>
+            <Pressable
+              onPress={() => router.push("/recurring")}
+              className="flex-row items-center justify-between py-3.5 px-3 rounded-2xl border border-transparent active:bg-default active:border-separator"
+              accessibilityLabel="Recurring payments"
+            >
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
+                <View className="size-9 rounded-xl bg-accent/12 items-center justify-center">
+                  <Ionicons
+                    name="repeat-outline"
+                    size={18}
+                    color={accentColor}
+                  />
+                </View>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-sm font-semibold text-foreground">
+                    Recurring payments
+                  </Text>
+                  <Text className="text-xs text-muted mt-0.5 leading-snug">
+                    Subscriptions, rent, salary on autopilot
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={mutedColor} />
+            </Pressable>
+          </Card.Body>
+        </Card>
 
         <Card className="mb-4 rounded-3xl border border-separator overflow-hidden">
           <Card.Body className="gap-4 py-5">

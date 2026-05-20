@@ -21,18 +21,25 @@ export async function fetchImageKitAuth(): Promise<ImageKitAuth> {
   return res.json();
 }
 
-export type UploadReceiptParams = {
+export type UploadFileParams = {
   uri: string;
   fileName: string;
   mimeType: string;
+  folder: string;
+};
+
+export type ImageKitUploadResult = {
+  url: string;
+  fileId: string;
+  mediaType: string;
 };
 
 /**
- * Client-side upload to ImageKit (same flow as web `ChatInput` + `/receipts`).
+ * Client-side upload to ImageKit (same flow as web `MediaUploader` / `ChatInput`).
  */
-export async function uploadReceiptToImageKit(
-  params: UploadReceiptParams,
-): Promise<{ url: string; mediaType: string }> {
+export async function uploadFileToImageKit(
+  params: UploadFileParams,
+): Promise<ImageKitUploadResult> {
   const auth = await fetchImageKitAuth();
 
   const form = new FormData();
@@ -42,7 +49,7 @@ export async function uploadReceiptToImageKit(
     type: params.mimeType,
   } as unknown as Blob);
   form.append("fileName", params.fileName);
-  form.append("folder", "/receipts");
+  form.append("folder", params.folder);
   form.append("signature", auth.signature);
   form.append("expire", String(auth.expire));
   form.append("token", auth.token);
@@ -59,8 +66,22 @@ export async function uploadReceiptToImageKit(
     throw new Error(body || "ImageKit upload failed");
   }
 
-  const data = (await uploadRes.json()) as { url?: string };
+  const data = (await uploadRes.json()) as { url?: string; fileId?: string };
   if (!data.url) throw new Error("Upload response missing URL");
 
-  return { url: data.url, mediaType: params.mimeType };
+  return {
+    url: data.url,
+    fileId: data.fileId ?? "",
+    mediaType: params.mimeType,
+  };
+}
+
+export type UploadReceiptParams = Omit<UploadFileParams, "folder">;
+
+/** Receipt scans (chat) — stored under `/receipts`. */
+export async function uploadReceiptToImageKit(
+  params: UploadReceiptParams,
+): Promise<{ url: string; mediaType: string }> {
+  const result = await uploadFileToImageKit({ ...params, folder: "/receipts" });
+  return { url: result.url, mediaType: result.mediaType };
 }
