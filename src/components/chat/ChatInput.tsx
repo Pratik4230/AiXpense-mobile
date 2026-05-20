@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Pressable,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
@@ -52,7 +51,6 @@ export function ChatInput({
   onVoiceTranscript,
 }: Props) {
   const isDark = useColorScheme() === "dark";
-  const { bottom } = useSafeAreaInsets();
   const hasText = value.trim().length > 0;
   const isDelete = selectedTransaction?.action === "delete";
   const canSend = isDelete || hasText;
@@ -248,7 +246,8 @@ export function ChatInput({
       style={{
         paddingHorizontal: 10,
         paddingTop: 10,
-        paddingBottom: Math.max(bottom, 10),
+        // Tab bar already includes home-indicator padding; avoid double inset gap.
+        paddingBottom: 10,
         flexDirection: "row",
         alignItems: "flex-end",
         gap: 8,
