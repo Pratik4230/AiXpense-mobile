@@ -82,6 +82,10 @@ export default function RootLayout() {
                   name="transactions"
                   options={{ presentation: "card" }}
                 />
+                <Stack.Screen
+                  name="recurring"
+                  options={{ presentation: "card" }}
+                />
               </Stack.Protected>
             </Stack>
           </QueryClientProvider>

@@ -27,5 +27,8 @@ export const CATEGORIES = [
 
 export const EXPENSE_TYPES = ["expense", "income"] as const;
 
+export const FREQUENCIES = ["daily", "weekly", "monthly", "yearly"] as const;
+
 export type Category = (typeof CATEGORIES)[number];
 export type ExpenseType = (typeof EXPENSE_TYPES)[number];
+export type Frequency = (typeof FREQUENCIES)[number];
