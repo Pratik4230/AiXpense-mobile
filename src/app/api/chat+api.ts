@@ -2,8 +2,6 @@ import { webApiBase } from "@/lib/env";
 
 export async function POST(req: Request) {
   const cookie = req.headers.get("Cookie") ?? "";
-  const streakClient = req.headers.get("X-AiXpense-Client") ?? "";
-  const streakKey = req.headers.get("X-AiXpense-Mobile-Key") ?? "";
   const body = await req.text();
 
   const response = await fetch(`${webApiBase()}/api/chat`, {
@@ -11,8 +9,6 @@ export async function POST(req: Request) {
     headers: {
       "Content-Type": "application/json",
       Cookie: cookie,
-      ...(streakClient ? { "X-AiXpense-Client": streakClient } : {}),
-      ...(streakKey ? { "X-AiXpense-Mobile-Key": streakKey } : {}),
     },
     body,
   });

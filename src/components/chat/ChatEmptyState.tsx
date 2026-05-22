@@ -11,31 +11,63 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "heroui-native";
 
-const EXAMPLE_PROMPTS = [
-  "Salary received 55000",
-  "Coffee and almond croissant 320",
-  "Paid rent 12000",
-] as const;
-
-const HIGHLIGHTS: {
+// ─── Tool groups ──────────────────────────────────────────────────────────────
+// Each group maps to one or more backend AI tools so users can discover every
+// capability at a glance.
+const TOOL_GROUPS: {
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
+  label: string;
+  examples: string[];
 }[] = [
   {
-    icon: "chatbubble-ellipses-outline",
-    title: "Speak normally",
-    subtitle: "No categories, formulas, or rigid forms.",
+    icon: "wallet-outline",
+    label: "Add expense",
+    examples: [
+      "Coffee ₹120",
+      "Paid rent ₹12,000",
+      "Grocery bill ₹850 at DMart",
+    ],
   },
   {
-    icon: "scan-outline",
-    title: "Paper to ledger",
-    subtitle: "Point the camera at a bill; we extract the rest.",
+    icon: "trending-up-outline",
+    label: "Log income",
+    examples: [
+      "Salary received ₹55,000",
+      "Freelance payment ₹8,000",
+      "Got cashback ₹250",
+    ],
   },
   {
-    icon: "sparkles-outline",
-    title: "Your money, clarified",
-    subtitle: "Income, splits, and budgets stay in sync.",
+    icon: "search-outline",
+    label: "Search & insights",
+    examples: [
+      "How much did I spend on food this month?",
+      "Show last 5 transactions",
+      "Total income vs expenses",
+    ],
+  },
+  {
+    icon: "pie-chart-outline",
+    label: "Budgets",
+    examples: [
+      "Set food budget to ₹5,000",
+      "Show my budgets",
+      "Delete my travel budget",
+    ],
+  },
+  {
+    icon: "camera-outline",
+    label: "Scan a bill",
+    examples: ["Scan this receipt", "Read the bill in the photo"],
+  },
+  {
+    icon: "swap-horizontal-outline",
+    label: "Edit or delete",
+    examples: [
+      "Change the last coffee to ₹150",
+      "Delete the rent entry",
+      "What currencies are supported?",
+    ],
   },
 ];
 
@@ -52,25 +84,13 @@ export function ChatEmptyState({
   const isDark = scheme === "dark";
   const [accentColor, mutedColor] = useThemeColor(["accent", "muted"]);
 
-  const orbPrimary = isDark
-    ? ["rgba(249,115,22,0.16)", "rgba(249,115,22,0)"]
-    : ["rgba(234,88,12,0.12)", "rgba(234,88,12,0)"];
-  const orbSecondary = isDark
-    ? ["rgba(250,250,250,0.06)", "rgba(250,250,250,0)"]
-    : ["rgba(15,23,42,0.06)", "rgba(15,23,42,0)"];
+  const cardBg = isDark ? "rgba(18,18,22,0.85)" : "rgba(255,255,255,0.9)";
+  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
 
-  const cardBg = isDark ? "rgba(12,12,14,0.72)" : "rgba(255,255,255,0.78)";
-  const cardBorder = isDark
-    ? "rgba(255,255,255,0.08)"
-    : "rgba(0,0,0,0.06)";
-  const rowBorder = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
-  const pillBorder = isDark
-    ? "rgba(255,255,255,0.1)"
-    : "rgba(0,0,0,0.08)";
-  const pillBg = isDark ? "rgba(22,22,26,0.9)" : "rgba(255,255,255,0.95)";
-  const sampleMuted = isDark ? "rgba(161,161,170,0.95)" : "rgba(82,82,91,0.98)";
+  const pillBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const sectionLabel = isDark ? "rgba(161,161,170,0.9)" : "rgba(82,82,91,0.9)";
 
-  const onTapExample = (text: string) => {
+  const onTap = (text: string) => {
     if (disabled || !onSuggestionPress) return;
     void Haptics.selectionAsync();
     onSuggestionPress(text);
@@ -79,207 +99,152 @@ export function ChatEmptyState({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.ambient}>
-        <LinearGradient
-          colors={orbPrimary}
-          style={[styles.orb, styles.orbTop]}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={orbSecondary}
-          style={[styles.orb, styles.orbBottom]}
-          pointerEvents="none"
-        />
-      </View>
-
-      <View style={styles.body}>
-        <View style={styles.markRow}>
-          <View
-            style={[
-              styles.markFrame,
-              { borderColor: isDark ? "rgba(249,115,22,0.35)" : "rgba(234,88,12,0.28)" },
-            ]}
-          >
-            <LinearGradient
-              colors={
-                isDark
-                  ? ["rgba(249,115,22,0.28)", "rgba(249,115,22,0.05)"]
-                  : ["rgba(234,88,12,0.18)", "rgba(234,88,12,0.04)"]
-              }
-              style={StyleSheet.absoluteFill}
-            />
-            <Text style={[styles.markGlyph, { color: accentColor }]}>✦</Text>
-          </View>
-          <View style={styles.markTextCol}>
-            <Text
-              style={[styles.eyebrow, { color: accentColor }]}
-              numberOfLines={1}
-            >
-              AiXpense
-            </Text>
-            <Text style={[styles.tagline, { color: sampleMuted }]}>
-              Private assistant
-            </Text>
-          </View>
-        </View>
-
-        <Text className="text-[28px] font-semibold text-foreground text-left leading-tight tracking-[-0.5px] mt-8">
-          Your ledger,{"\n"}in plain words.
-        </Text>
-
-        <Text
-          className="text-[15px] text-muted leading-relaxed mt-4 max-w-[320px]"
-          style={{ lineHeight: 22 }}
-        >
-          One calm place to log what you earn and spend. Type it, say it, or
-          scan it—we keep the structure behind the scenes.
-        </Text>
-
+      {/* ── Header ── */}
+      <View style={styles.header}>
         <View
           style={[
-            styles.card,
+            styles.badge,
             {
-              backgroundColor: cardBg,
-              borderColor: cardBorder,
+              borderColor: isDark
+                ? "rgba(249,115,22,0.4)"
+                : "rgba(234,88,12,0.3)",
             },
           ]}
         >
-          {HIGHLIGHTS.map((row, idx) => (
-            <View
-              key={row.title}
-              style={[
-                styles.cardRow,
-                idx < HIGHLIGHTS.length - 1 && {
-                  borderBottomWidth: StyleSheet.hairlineWidth,
-                  borderBottomColor: rowBorder,
-                },
-              ]}
-            >
-              <View style={[styles.rowIconWrap, { borderColor: pillBorder }]}>
-                <Ionicons name={row.icon} size={22} color={accentColor} />
-              </View>
-              <View style={styles.rowCopy}>
-                <Text className="text-[15px] font-semibold text-foreground">
-                  {row.title}
-                </Text>
-                <Text
-                  className="text-[13px] text-muted leading-snug mt-1"
-                  style={{ color: mutedColor }}
+          <LinearGradient
+            colors={
+              isDark
+                ? ["rgba(249,115,22,0.3)", "rgba(249,115,22,0.06)"]
+                : ["rgba(234,88,12,0.2)", "rgba(234,88,12,0.04)"]
+            }
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={[styles.badgeGlyph, { color: accentColor }]}>✦</Text>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.appName, { color: accentColor }]}>AiXpense</Text>
+          <Text style={[styles.tagline, { color: mutedColor }]}>
+            Your private finance assistant
+          </Text>
+        </View>
+      </View>
+
+      <Text className="text-[26px] font-semibold text-foreground leading-tight tracking-[-0.4px] mt-7">
+        What can I help{"\n"}you with today?
+      </Text>
+
+      {/* ── Tool groups ── */}
+      {onSuggestionPress ? (
+        <View style={styles.groups}>
+          {TOOL_GROUPS.map((group) => (
+            <View key={group.label} style={styles.group}>
+              {/* Group header */}
+              <View style={styles.groupHeader}>
+                <View
+                  style={[styles.groupIconWrap, { borderColor: pillBorder }]}
                 >
-                  {row.subtitle}
+                  <Ionicons name={group.icon} size={16} color={accentColor} />
+                </View>
+                <Text style={[styles.groupLabel, { color: sectionLabel }]}>
+                  {group.label}
                 </Text>
+              </View>
+
+              {/* Example pills */}
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: cardBg, borderColor: cardBorder },
+                ]}
+              >
+                {group.examples.map((ex, idx) => (
+                  <Pressable
+                    key={ex}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Try: ${ex}`}
+                    disabled={disabled}
+                    onPress={() => onTap(ex)}
+                    style={({ pressed }) => [
+                      styles.pill,
+                      idx < group.examples.length - 1 && {
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: pillBorder,
+                      },
+                      {
+                        opacity: disabled ? 0.45 : pressed ? 0.75 : 1,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.pillText, { color: sectionLabel }]}
+                      numberOfLines={1}
+                    >
+                      {ex}
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={14}
+                      color={accentColor}
+                      style={{ opacity: 0.8 }}
+                    />
+                  </Pressable>
+                ))}
               </View>
             </View>
           ))}
-        </View>
 
-        {onSuggestionPress ? (
-          <View style={styles.examplesBlock}>
-            <Text
-              style={[styles.examplesLabel, { color: sampleMuted }]}
-              numberOfLines={1}
-            >
-              Try an example
-            </Text>
-            <View style={styles.examplesStack}>
-              {EXAMPLE_PROMPTS.map((prompt) => (
-                <Pressable
-                  key={prompt}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Use example: ${prompt}`}
-                  disabled={disabled}
-                  onPress={() => onTapExample(prompt)}
-                  style={({ pressed }) => [
-                    styles.pill,
-                    {
-                      borderColor: pillBorder,
-                      backgroundColor: pillBg,
-                      opacity: disabled ? 0.45 : pressed ? 0.92 : 1,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.pillText, { color: sampleMuted }]}
-                    numberOfLines={2}
-                  >
-                    “{prompt}”
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={16}
-                    color={accentColor}
-                    style={styles.pillChevron}
-                  />
-                </Pressable>
-              ))}
-            </View>
-            <Text className="text-[12px] text-muted mt-5 text-center opacity-80">
-              Use the composer below when you&apos;re ready—this thread is saved
-              automatically.
-            </Text>
-          </View>
-        ) : null}
-      </View>
+          <Text
+            className="text-[12px] text-muted text-center mt-2 mb-1 opacity-70"
+            style={{ lineHeight: 18 }}
+          >
+            Tap any example or type your own below.
+          </Text>
+        </View>
+      ) : (
+        // Minimal state – no suggestion handler (e.g. read-only thread)
+        <Text
+          className="text-[14px] text-muted mt-4 leading-relaxed"
+          style={{ lineHeight: 22 }}
+        >
+          Log expenses, income, set budgets, or ask anything about your finances
+          — all in plain language.
+        </Text>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
+  scroll: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-    paddingTop: 4,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 32,
   },
-  ambient: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
-  orb: {
-    position: "absolute",
-    width: 420,
-    height: 420,
-    borderRadius: 210,
-  },
-  orbTop: {
-    top: -160,
-    right: -120,
-  },
-  orbBottom: {
-    bottom: -180,
-    left: -140,
-  },
-  body: {
-    position: "relative",
-    zIndex: 1,
-  },
-  markRow: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  markFrame: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+  badge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  markGlyph: {
-    fontSize: 22,
+  badgeGlyph: {
+    fontSize: 20,
     fontWeight: "200",
   },
-  markTextCol: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  eyebrow: {
+  appName: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 2.4,
@@ -288,67 +253,52 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 12,
     fontWeight: "500",
-    marginTop: 3,
-    letterSpacing: 0.2,
+    marginTop: 2,
+    letterSpacing: 0.1,
   },
-  card: {
-    marginTop: 28,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 4,
-    paddingVertical: 6,
+  groups: {
+    marginTop: 24,
+    gap: 20,
   },
-  cardRow: {
+  group: {
+    gap: 8,
+  },
+  groupHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 2,
   },
-  rowIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  groupIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
   },
-  rowCopy: {
-    flex: 1,
-    paddingRight: 4,
-  },
-  examplesBlock: {
-    marginTop: 32,
-  },
-  examplesLabel: {
+  groupLabel: {
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 2,
+    letterSpacing: 1.6,
     textTransform: "uppercase",
-    marginBottom: 14,
   },
-  examplesStack: {
-    gap: 10,
+  card: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    gap: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   pillText: {
     flex: 1,
-    fontSize: 15,
-    fontStyle: "italic",
+    fontSize: 14,
     fontWeight: "500",
-    letterSpacing: 0.15,
-    lineHeight: 21,
-  },
-  pillChevron: {
-    opacity: 0.9,
+    letterSpacing: 0.1,
   },
 });

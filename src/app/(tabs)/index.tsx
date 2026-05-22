@@ -40,9 +40,7 @@ import {
 } from "@/services/conversations";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchStreakStatus } from "@/services/streak";
-import { useStreakReminder } from "@/hooks/useStreakReminder";
-import { StreakBanner } from "@/components/streak/StreakBanner";
+
 import { api } from "@/lib/api";
 
 function ChatSessionLoader({
@@ -96,12 +94,6 @@ function ChatSession({
   const { data: session } = useSession();
   const queryClient = useQueryClient();
 
-  const { data: streak, isLoading: streakLoading } = useQuery({
-    queryKey: ["streak-status"],
-    queryFn: fetchStreakStatus,
-    enabled: !!session?.user,
-  });
-
   const { data: trialsData } = useQuery({
     queryKey: ["user", "trials"],
     queryFn: () =>
@@ -115,12 +107,9 @@ function ChatSession({
 
   const isPremium = trialsData?.isPremium ?? false;
 
-  useStreakReminder(streak);
-
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") {
-        void queryClient.invalidateQueries({ queryKey: ["streak-status"] });
         void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
       }
     });
@@ -153,13 +142,7 @@ function ChatSession({
 
   const cookies = authClient.getCookie();
   const chatHeaders = useMemo(() => {
-    const h: Record<string, string> = {
-      "X-AiXpense-Client": "native",
-    };
-    if (process.env.EXPO_PUBLIC_AIXPENSE_MOBILE_STREAK_KEY) {
-      h["X-AiXpense-Mobile-Key"] =
-        process.env.EXPO_PUBLIC_AIXPENSE_MOBILE_STREAK_KEY;
-    }
+    const h: Record<string, string> = {};
     if (cookies) h.Cookie = cookies;
     return h;
   }, [cookies]);
@@ -183,7 +166,6 @@ function ChatSession({
   const wasStreamingRef = useRef(false);
   useEffect(() => {
     if (wasStreamingRef.current && status === "ready") {
-      void queryClient.invalidateQueries({ queryKey: ["streak-status"] });
       void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
     }
     wasStreamingRef.current = status === "streaming";
@@ -427,7 +409,6 @@ function ChatSession({
       )}
 
       <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
-        <StreakBanner streak={streak} isLoading={streakLoading} />
         {messages.length === 0 ? (
           <ChatEmptyState
             onSuggestionPress={handleSuggestion}
