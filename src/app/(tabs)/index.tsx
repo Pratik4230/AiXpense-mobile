@@ -13,7 +13,9 @@ import {
   useColorScheme,
   Platform,
   AppState,
+  Alert,
 } from "react-native";
+import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 import { useThemeColor } from "heroui-native";
 import { useChat } from "@ai-sdk/react";
@@ -24,6 +26,7 @@ import { authClient, useSession } from "@/lib/authClient";
 import { generateAPIUrl } from "@/utils/api";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { TrialStatus } from "@/components/chat/TrialStatus";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { ComposerKeyboardOrSticky } from "@/components/chat/ComposerKeyboardOrSticky";
 import {
@@ -39,9 +42,16 @@ import {
   useAppendMessages,
 } from "@/services/conversations";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { api } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  FREE_DAILY_LIMIT,
+  TRIAL_LIMIT_ERROR_MESSAGE,
+  TRIALS_QUERY_KEY,
+  isTrialLimitError,
+  useTrials,
+  useTrialActions,
+} from "@/services/trials";
+import { webApiBase } from "@/lib/env";
 
 function ChatSessionLoader({
   conversationId,
@@ -94,23 +104,47 @@ function ChatSession({
   const { data: session } = useSession();
   const queryClient = useQueryClient();
 
-  const { data: trialsData } = useQuery({
-    queryKey: ["user", "trials"],
-    queryFn: () =>
-      api
-        .get<{ freeTrials: number | null; isPremium: boolean }>(
-          "/api/user/trials",
-        )
-        .then((r) => r.data),
-    enabled: !!session?.user,
-  });
+  const { data: trialsData, isFetching: isTrialsFetching } = useTrials(
+    !!session?.user,
+  );
+  const { optimisticDecrement, invalidateTrials, markTrialsExhausted } =
+    useTrialActions();
 
   const isPremium = trialsData?.isPremium ?? false;
+  const displayTrials = trialsData?.freeTrials ?? 0;
+
+  const showUpgradeAlert = useCallback(() => {
+    Alert.alert(
+      "Upgrade to Premium",
+      `You've used all ${FREE_DAILY_LIMIT} free AI messages for today. They reset at midnight IST. Upgrade for unlimited access.`,
+      [
+        { text: "Not now", style: "cancel" },
+        {
+          text: "View plans",
+          onPress: () => void Linking.openURL(`${webApiBase()}/premium`),
+        },
+      ],
+    );
+  }, []);
+
+  const canUseTrialMessage = useCallback(() => {
+    if (isPremium) return true;
+    if (isTrialsFetching) return false;
+    if (displayTrials <= 0) {
+      showUpgradeAlert();
+      return false;
+    }
+    return true;
+  }, [isPremium, isTrialsFetching, displayTrials, showUpgradeAlert]);
+
+  const consumeTrial = useCallback(() => {
+    if (!isPremium) optimisticDecrement();
+  }, [isPremium, optimisticDecrement]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") {
-        void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
+        void queryClient.invalidateQueries({ queryKey: TRIALS_QUERY_KEY });
       }
     });
     return () => sub.remove();
@@ -129,6 +163,7 @@ function ChatSession({
   const menuTop = insets.top + 8;
   // `edges` includes `left`; padding already accounts for cutouts — offset inside content.
   const menuLeft = 12;
+  const menuRight = 12;
   const belowTopChrome = menuTop + 44;
 
   const createConversation = useCreateConversation();
@@ -157,7 +192,14 @@ function ChatSession({
       fetch: expoFetch as unknown as typeof globalThis.fetch,
       headers: chatHeaders,
     }),
-    onError: (err) => console.error("Chat error:", err),
+    onError: (err) => {
+      console.error("Chat error:", err);
+      if (isTrialLimitError(err.message)) {
+        markTrialsExhausted();
+        void invalidateTrials();
+        showUpgradeAlert();
+      }
+    },
   });
 
   const isStreaming = status === "streaming";
@@ -166,10 +208,10 @@ function ChatSession({
   const wasStreamingRef = useRef(false);
   useEffect(() => {
     if (wasStreamingRef.current && status === "ready") {
-      void queryClient.invalidateQueries({ queryKey: ["user", "trials"] });
+      if (!isPremium) invalidateTrials();
     }
     wasStreamingRef.current = status === "streaming";
-  }, [status, queryClient]);
+  }, [status, isPremium, invalidateTrials]);
 
   // Saving messages logic ported from web ChatView
   const saveMessages = useCallback(
@@ -275,7 +317,8 @@ function ChatSession({
   prevStatusRef.current = status;
 
   const handleReceiptUploaded = (file: { url: string; mediaType: string }) => {
-    if (isStreaming) return;
+    if (isStreaming || !canUseTrialMessage()) return;
+    consumeTrial();
     const text = input.trim() || "Scan this bill";
     sendMessage({
       role: "user",
@@ -288,7 +331,7 @@ function ChatSession({
   };
 
   const handleSend = () => {
-    if (isStreaming) return;
+    if (isStreaming || !canUseTrialMessage()) return;
 
     if (selectedTransaction) {
       const cur =
@@ -298,6 +341,7 @@ function ChatSession({
       const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
 
       if (selectedTransaction.action === "delete") {
+        consumeTrial();
         sendMessage({ text: prefix });
         setSelectedTransaction(null);
         setInput("");
@@ -306,6 +350,7 @@ function ChatSession({
 
       const text = input.trim();
       if (!text) return;
+      consumeTrial();
       sendMessage({ text: `${prefix} ${text}` });
       setInput("");
       setSelectedTransaction(null);
@@ -314,6 +359,7 @@ function ChatSession({
 
     const text = input.trim();
     if (!text) return;
+    consumeTrial();
     sendMessage({ text });
     setInput("");
   };
@@ -321,7 +367,7 @@ function ChatSession({
   /** Same routing as `handleSend`, but with explicit text (voice STT). */
   const handleVoiceTranscript = (transcript: string) => {
     const trimmed = transcript.trim();
-    if (!trimmed || isStreaming) return;
+    if (!trimmed || isStreaming || !canUseTrialMessage()) return;
 
     if (selectedTransaction) {
       const cur =
@@ -330,18 +376,21 @@ function ChatSession({
           : "";
       const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
       if (selectedTransaction.action === "delete") return;
+      consumeTrial();
       sendMessage({ text: `${prefix} ${trimmed}` });
       setInput("");
       setSelectedTransaction(null);
       return;
     }
 
+    consumeTrial();
     sendMessage({ text: trimmed });
     setInput("");
   };
 
   const handleSuggestion = (suggestion: string) => {
-    if (isStreaming) return;
+    if (isStreaming || !canUseTrialMessage()) return;
+    consumeTrial();
     sendMessage({ text: suggestion });
   };
 
@@ -395,24 +444,50 @@ function ChatSession({
         <Feather name="menu" size={20} color={accentColor} />
       </Pressable>
 
-      {error && (
+      <View
+        className="absolute z-50"
+        style={{ top: menuTop, right: menuRight }}
+      >
+        {isTrialsFetching && !trialsData ? (
+          <ActivityIndicator size="small" color={accentColor} />
+        ) : (
+          <TrialStatus
+            isPremium={isPremium}
+            freeTrials={displayTrials}
+            onPress={
+              isPremium
+                ? undefined
+                : () => void Linking.openURL(`${webApiBase()}/premium`)
+            }
+          />
+        )}
+      </View>
+
+      {error && isTrialLimitError(error.message) ? (
         <View
           className="mx-4 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3"
           style={{ marginTop: belowTopChrome }}
         >
           <Text className="text-sm font-medium text-danger leading-snug">
-            {error.message.includes("403")
-              ? "No free trials remaining. Upgrade to premium."
-              : "Something went wrong. Try again."}
+            {TRIAL_LIMIT_ERROR_MESSAGE}
           </Text>
         </View>
-      )}
+      ) : error ? (
+        <View
+          className="mx-4 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3"
+          style={{ marginTop: belowTopChrome }}
+        >
+          <Text className="text-sm font-medium text-danger leading-snug">
+            Something went wrong. Try again.
+          </Text>
+        </View>
+      ) : null}
 
       <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
         {messages.length === 0 ? (
           <ChatEmptyState
             onSuggestionPress={handleSuggestion}
-            disabled={isStreaming}
+            disabled={isStreaming || isTrialsFetching}
           />
         ) : (
           <MessageList
@@ -436,7 +511,7 @@ function ChatSession({
           value={input}
           onChange={setInput}
           onSend={handleSend}
-          isLoading={isStreaming}
+          isLoading={isStreaming || isTrialsFetching}
           selectedTransaction={selectedTransaction}
           isPremium={isPremium}
           onReceiptUploaded={handleReceiptUploaded}

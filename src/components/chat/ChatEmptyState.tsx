@@ -10,7 +10,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "heroui-native";
-
 // ─── Tool groups ──────────────────────────────────────────────────────────────
 // Each group maps to one or more backend AI tools so users can discover every
 // capability at a glance.

@@ -241,18 +241,17 @@ export function ChatInput({
   const iconMuted = isDark ? "#e4e4e7" : "#52525b";
 
   return (
-    <View
-      className="border-t border-separator bg-background"
-      style={{
-        paddingHorizontal: 10,
-        paddingTop: 10,
-        // Tab bar already includes home-indicator padding; avoid double inset gap.
-        paddingBottom: 10,
-        flexDirection: "row",
-        alignItems: "flex-end",
-        gap: 8,
-      }}
-    >
+    <View className="border-t border-separator bg-background">
+      <View
+        style={{
+          paddingHorizontal: 10,
+          paddingTop: 10,
+          paddingBottom: 10,
+          flexDirection: "row",
+          alignItems: "flex-end",
+          gap: 8,
+        }}
+      >
       <View
         pointerEvents={isInputFocused ? "none" : "auto"}
         style={{
@@ -367,6 +366,7 @@ export function ChatInput({
           style={canSend && !isDelete ? { marginLeft: 2 } : undefined}
         />
       </Button>
+      </View>
     </View>
   );
 }
