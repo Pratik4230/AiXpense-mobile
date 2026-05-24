@@ -21,19 +21,15 @@ const TOOL_GROUPS: {
   {
     icon: "wallet-outline",
     label: "Add expense",
-    examples: [
-      "Coffee ₹120",
-      "Paid rent ₹12,000",
-      "Grocery bill ₹850 at DMart",
-    ],
+    examples: ["Coffee 120", "Paid rent 12,000", "Grocery bill 850 at DMart"],
   },
   {
     icon: "trending-up-outline",
     label: "Log income",
     examples: [
-      "Salary received ₹55,000",
-      "Freelance payment ₹8,000",
-      "Got cashback ₹250",
+      "Salary received 55,000",
+      "Freelance payment 8,000",
+      "Got cashback 250",
     ],
   },
   {
@@ -49,7 +45,7 @@ const TOOL_GROUPS: {
     icon: "pie-chart-outline",
     label: "Budgets",
     examples: [
-      "Set food budget to ₹5,000",
+      "Set food budget to 5,000",
       "Show my budgets",
       "Delete my travel budget",
     ],
@@ -62,21 +58,22 @@ const TOOL_GROUPS: {
   {
     icon: "swap-horizontal-outline",
     label: "Edit or delete",
-    examples: [
-      "Change the last coffee to ₹150",
-      "Delete the rent entry",
-      "What currencies are supported?",
-    ],
+    examples: ["What currencies are supported?"],
   },
 ];
 
+const SCAN_BILL_GROUP_LABEL = "Scan a bill";
+
 interface ChatEmptyStateProps {
   onSuggestionPress?: (suggestion: string) => void;
+  /** Opens camera / library flow (same as chat attach). Used for Scan a bill examples. */
+  onScanBillPress?: (suggestion: string) => void;
   disabled?: boolean;
 }
 
 export function ChatEmptyState({
   onSuggestionPress,
+  onScanBillPress,
   disabled,
 }: ChatEmptyStateProps) {
   const scheme = useColorScheme();
@@ -89,9 +86,14 @@ export function ChatEmptyState({
   const pillBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
   const sectionLabel = isDark ? "rgba(161,161,170,0.9)" : "rgba(82,82,91,0.9)";
 
-  const onTap = (text: string) => {
-    if (disabled || !onSuggestionPress) return;
+  const onTap = (groupLabel: string, text: string) => {
+    if (disabled) return;
     void Haptics.selectionAsync();
+    if (groupLabel === SCAN_BILL_GROUP_LABEL && onScanBillPress) {
+      onScanBillPress(text);
+      return;
+    }
+    if (!onSuggestionPress) return;
     onSuggestionPress(text);
   };
 
@@ -138,7 +140,7 @@ export function ChatEmptyState({
       </Text>
 
       {/* ── Tool groups ── */}
-      {onSuggestionPress ? (
+      {onSuggestionPress || onScanBillPress ? (
         <View style={styles.groups}>
           {TOOL_GROUPS.map((group) => (
             <View key={group.label} style={styles.group}>
@@ -167,7 +169,7 @@ export function ChatEmptyState({
                     accessibilityRole="button"
                     accessibilityLabel={`Try: ${ex}`}
                     disabled={disabled}
-                    onPress={() => onTap(ex)}
+                    onPress={() => onTap(group.label, ex)}
                     style={({ pressed }) => [
                       styles.pill,
                       idx < group.examples.length - 1 && {

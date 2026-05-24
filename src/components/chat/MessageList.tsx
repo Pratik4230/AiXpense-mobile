@@ -14,6 +14,7 @@ import { AssistantMarkdown } from "./AssistantMarkdown";
 import { useCallback, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import { ChatImageLightbox } from "./ChatImageLightbox";
 import Animated from "react-native-reanimated";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -737,12 +738,15 @@ function MessageBubble({
     message.parts?.filter((p) => p.type !== "text" && p.type !== "file") ?? [];
   const hasTools = toolParts.length > 0;
   const receiptThumbW = Math.min(windowWidth * 0.72, 280);
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   return (
     <View
       className={`mb-4 ${isUser ? "items-end" : "items-start"}`}
       style={{ maxWidth: "88%", alignSelf: isUser ? "flex-end" : "flex-start" }}
     >
+      <ChatImageLightbox uri={previewUri} onClose={() => setPreviewUri(null)} />
+
       {isUser && imageFileParts.length > 0 && (
         <View
           style={{
@@ -752,8 +756,14 @@ function MessageBubble({
           }}
         >
           {imageFileParts.map((part, i) => (
-            <View
+            <Pressable
               key={`${message.id}-img-${i}`}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setPreviewUri(part.url);
+              }}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="View receipt full screen"
               style={{
                 borderRadius: 16,
                 overflow: "hidden",
@@ -767,7 +777,7 @@ function MessageBubble({
                 contentFit="cover"
                 accessibilityLabel="Uploaded receipt"
               />
-            </View>
+            </Pressable>
           ))}
         </View>
       )}

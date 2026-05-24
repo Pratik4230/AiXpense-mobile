@@ -18,7 +18,7 @@ interface Props {
   range: ReportRange;
   mode: ReportMode;
   chartWidth: number;
-  /** Y-axis prefix (e.g. ₹ or $) from account currency */
+
   yAxisLabelPrefix: string;
 }
 

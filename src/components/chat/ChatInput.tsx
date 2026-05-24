@@ -8,8 +8,6 @@ import {
   Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import * as Linking from "expo-linking";
 import {
   useAudioRecorder,
   useAudioRecorderState,
@@ -19,15 +17,7 @@ import {
 } from "expo-audio";
 import { Button, Input } from "heroui-native";
 import type { SelectedTransaction } from "./TransactionAttachment";
-import { uploadReceiptToImageKit } from "@/lib/imagekitUpload";
 import { transcribeVoiceRecording } from "@/lib/voiceTranscription";
-import { webApiBase } from "@/lib/env";
-
-const MAX_BYTES = 10 * 1024 * 1024;
-
-function premiumUrl() {
-  return `${webApiBase()}/premium`;
-}
 
 interface Props {
   value: string;
@@ -36,8 +26,9 @@ interface Props {
   isLoading: boolean;
   selectedTransaction?: SelectedTransaction | null;
   isPremium: boolean;
-  onReceiptUploaded: (file: { url: string; mediaType: string }) => void;
   onVoiceTranscript: (text: string) => void;
+  startReceiptCapture: () => void;
+  receiptUploading: boolean;
 }
 
 export function ChatInput({
@@ -47,14 +38,14 @@ export function ChatInput({
   isLoading,
   selectedTransaction,
   isPremium,
-  onReceiptUploaded,
   onVoiceTranscript,
+  startReceiptCapture,
+  receiptUploading,
 }: Props) {
   const isDark = useColorScheme() === "dark";
   const hasText = value.trim().length > 0;
   const isDelete = selectedTransaction?.action === "delete";
   const canSend = isDelete || hasText;
-  const [uploading, setUploading] = useState(false);
   const [voiceProcessing, setVoiceProcessing] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
 
@@ -63,9 +54,9 @@ export function ChatInput({
   const isRecording = recorderState.isRecording;
 
   const voiceBusy = isRecording || voiceProcessing;
-  const busy = isLoading || uploading || voiceProcessing || isRecording;
+  const busy = isLoading || receiptUploading || voiceProcessing || isRecording;
 
-  const placeholder = uploading
+  const placeholder = receiptUploading
     ? "Uploading bill..."
     : isRecording
       ? "Listening..."
@@ -89,83 +80,13 @@ export function ChatInput({
     };
   }, [audioRecorder]);
 
-  const runPickAndUpload = async (source: "camera" | "library") => {
-    if (busy || isDelete || selectedTransaction || voiceBusy) return;
-
-    const opts: ImagePicker.ImagePickerOptions = {
-      mediaTypes: ["images"],
-      allowsEditing: false,
-      quality: 0.85,
-    };
-
-    let result: ImagePicker.ImagePickerResult;
-    if (source === "camera") {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Camera", "Camera access is required to scan a receipt.");
-        return;
-      }
-      result = await ImagePicker.launchCameraAsync(opts);
-    } else {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Photos", "Photo library access is required to attach a receipt.");
-        return;
-      }
-      result = await ImagePicker.launchImageLibraryAsync(opts);
-    }
-
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    if (asset.fileSize != null && asset.fileSize > MAX_BYTES) {
-      Alert.alert("File too large", "Receipt images must be 10 MB or smaller.");
-      return;
-    }
-
-    const mime = asset.mimeType ?? "image/jpeg";
-    const ext = mime.includes("png") ? "png" : "jpg";
-    const fileName = asset.fileName ?? `receipt-${Date.now()}.${ext}`;
-
-    setUploading(true);
-    try {
-      const uploaded = await uploadReceiptToImageKit({
-        uri: asset.uri,
-        fileName,
-        mimeType: mime,
-      });
-      onReceiptUploaded(uploaded);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
-      Alert.alert("Upload failed", msg.includes("401") ? "Please sign in again." : msg);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const onAttachPress = () => {
     if (busy || isDelete || selectedTransaction || voiceBusy) return;
-
-    if (!isPremium) {
-      Alert.alert(
-        "Premium feature",
-        "Bill scanning with a photo is available on Premium. Upgrade to unlock receipt capture.",
-        [
-          { text: "Not now", style: "cancel" },
-          { text: "View plans", onPress: () => void Linking.openURL(premiumUrl()) },
-        ],
-      );
-      return;
-    }
-
-    Alert.alert("Receipt", "Add a photo of your bill", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Take photo", onPress: () => void runPickAndUpload("camera") },
-      { text: "Photo library", onPress: () => void runPickAndUpload("library") },
-    ]);
+    startReceiptCapture();
   };
 
   const startVoiceRecording = async () => {
-    if (busy || isDelete || selectedTransaction || uploading) return;
+    if (busy || isDelete || selectedTransaction || receiptUploading) return;
 
     const perm = await requestRecordingPermissionsAsync();
     if (!perm.granted) {
@@ -222,7 +143,7 @@ export function ChatInput({
   };
 
   const onMicPress = () => {
-    if (uploading) return;
+    if (receiptUploading) return;
     if (isRecording) {
       void stopVoiceRecording();
       return;
@@ -232,7 +153,7 @@ export function ChatInput({
   };
 
   const micDisabled =
-    uploading ||
+    receiptUploading ||
     isDelete ||
     !!selectedTransaction ||
     isLoading ||
@@ -280,7 +201,7 @@ export function ChatInput({
           })}
           hitSlop={8}
         >
-          {uploading ? (
+          {receiptUploading ? (
             <ActivityIndicator size="small" color="#f97316" />
           ) : (
             <Ionicons

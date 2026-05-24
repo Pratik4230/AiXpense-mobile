@@ -28,6 +28,7 @@ import { MessageList } from "@/components/chat/MessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { TrialStatus } from "@/components/chat/TrialStatus";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
+import { useReceiptCapture } from "@/hooks/useReceiptCapture";
 import { ComposerKeyboardOrSticky } from "@/components/chat/ComposerKeyboardOrSticky";
 import {
   TransactionAttachment,
@@ -184,6 +185,7 @@ function ChatSession({
 
   const lastSavedCountRef = useRef(initialMessages.length);
   const pendingSaveRef = useRef(false);
+  const pendingReceiptPromptRef = useRef<string | null>(null);
 
   const { messages, sendMessage, status, error } = useChat({
     messages: initialMessages as any,
@@ -316,19 +318,51 @@ function ChatSession({
   }
   prevStatusRef.current = status;
 
-  const handleReceiptUploaded = (file: { url: string; mediaType: string }) => {
-    if (isStreaming || !canUseTrialMessage()) return;
-    consumeTrial();
-    const text = input.trim() || "Scan this bill";
-    sendMessage({
-      role: "user",
-      parts: [
-        { type: "text", text },
-        { type: "file", mediaType: file.mediaType, url: file.url },
-      ],
-    } as any);
-    setInput("");
-  };
+  const handleReceiptUploaded = useCallback(
+    (file: { url: string; mediaType: string }) => {
+      if (isStreaming || !canUseTrialMessage()) return;
+      consumeTrial();
+      const text =
+        input.trim() ||
+        pendingReceiptPromptRef.current ||
+        "Scan this bill";
+      pendingReceiptPromptRef.current = null;
+      sendMessage({
+        role: "user",
+        parts: [
+          { type: "text", text },
+          { type: "file", mediaType: file.mediaType, url: file.url },
+        ],
+      } as any);
+      setInput("");
+    },
+    [
+      isStreaming,
+      canUseTrialMessage,
+      consumeTrial,
+      input,
+      sendMessage,
+    ],
+  );
+
+  const { startReceiptCapture, uploading: receiptUploading } = useReceiptCapture({
+    isPremium,
+    disabled:
+      isStreaming || isTrialsFetching || !!selectedTransaction,
+    onUploaded: handleReceiptUploaded,
+    onCaptureDismissed: () => {
+      pendingReceiptPromptRef.current = null;
+    },
+  });
+
+  const handleScanBillPress = useCallback(
+    (suggestion: string) => {
+      if (isStreaming || isTrialsFetching || receiptUploading) return;
+      pendingReceiptPromptRef.current = suggestion;
+      startReceiptCapture();
+    },
+    [isStreaming, isTrialsFetching, receiptUploading, startReceiptCapture],
+  );
 
   const handleSend = () => {
     if (isStreaming || !canUseTrialMessage()) return;
@@ -487,7 +521,8 @@ function ChatSession({
         {messages.length === 0 ? (
           <ChatEmptyState
             onSuggestionPress={handleSuggestion}
-            disabled={isStreaming || isTrialsFetching}
+            onScanBillPress={handleScanBillPress}
+            disabled={isStreaming || isTrialsFetching || receiptUploading}
           />
         ) : (
           <MessageList
@@ -514,8 +549,9 @@ function ChatSession({
           isLoading={isStreaming || isTrialsFetching}
           selectedTransaction={selectedTransaction}
           isPremium={isPremium}
-          onReceiptUploaded={handleReceiptUploaded}
           onVoiceTranscript={handleVoiceTranscript}
+          startReceiptCapture={startReceiptCapture}
+          receiptUploading={receiptUploading}
         />
       </ComposerKeyboardOrSticky>
     </SafeAreaView>
