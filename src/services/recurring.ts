@@ -34,7 +34,19 @@ export interface CreateRecurringPaymentInput {
   notes?: string;
 }
 
-export type UpdateRecurringPaymentInput = Partial<CreateRecurringPaymentInput> & {
+/** Form output: create omits recurOnDate when not monthly; edit may send null to clear. */
+export type RecurringFormSubmitValues = Omit<
+  CreateRecurringPaymentInput,
+  "recurOnDate"
+> & {
+  recurOnDate?: number | null;
+};
+
+export type UpdateRecurringPaymentInput = Partial<
+  Omit<CreateRecurringPaymentInput, "recurOnDate"> & {
+    recurOnDate?: number | null;
+  }
+> & {
   isActive?: boolean;
   endDate?: string | null;
 };

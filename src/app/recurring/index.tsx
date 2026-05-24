@@ -14,14 +14,11 @@ import { Button, Skeleton, useThemeColor } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "@/components/ui";
 import { RecurringCard } from "@/components/recurring/RecurringCard";
-import { RecurringFormSheet } from "@/components/recurring/RecurringFormSheet";
 import {
   useRecurringPayments,
-  useCreateRecurringPayment,
   useUpdateRecurringPayment,
   useDeleteRecurringPayment,
   type RecurringPayment,
-  type CreateRecurringPaymentInput,
 } from "@/services/recurring";
 
 export default function RecurringScreen() {
@@ -30,43 +27,19 @@ export default function RecurringScreen() {
   const [accentColor, mutedColor] = useThemeColor(["accent", "muted"]);
 
   const [showAll, setShowAll] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<RecurringPayment | undefined>();
 
   const { data, isLoading, isRefetching, refetch } = useRecurringPayments(
     !showAll,
   );
-  const create = useCreateRecurringPayment();
   const update = useUpdateRecurringPayment();
   const remove = useDeleteRecurringPayment();
 
   const rules = data?.data ?? [];
   const bottomPad = Math.max(insets.bottom, 20) + 8;
 
-  const handleCreate = (values: CreateRecurringPaymentInput) => {
-    create.mutate(values, {
-      onSuccess: () => {
-        setFormOpen(false);
-        Alert.alert("Created", "Recurring payment rule added.");
-      },
-      onError: () =>
-        Alert.alert("Error", "Failed to create recurring payment."),
-    });
-  };
-
-  const handleEdit = (values: CreateRecurringPaymentInput) => {
-    if (!editTarget) return;
-    update.mutate(
-      { id: editTarget._id, ...values },
-      {
-        onSuccess: () => {
-          setEditTarget(undefined);
-          Alert.alert("Saved", "Recurring payment updated.");
-        },
-        onError: () => Alert.alert("Error", "Failed to update."),
-      },
-    );
-  };
+  const openCreate = () => router.push("/recurring/form");
+  const openEdit = (rule: RecurringPayment) =>
+    router.push({ pathname: "/recurring/form", params: { id: rule._id } });
 
   const handleToggle = (rule: RecurringPayment) => {
     update.mutate(
@@ -100,7 +73,7 @@ export default function RecurringScreen() {
               </Text>
             </Pressable>
           </View>
-          <Button size="sm" onPress={() => setFormOpen(true)}>
+          <Button size="sm" onPress={openCreate}>
             <Ionicons name="add" size={17} color="white" />
             <Button.Label>Add</Button.Label>
           </Button>
@@ -129,7 +102,7 @@ export default function RecurringScreen() {
         <Text className="text-xs text-muted text-center mt-1 leading-relaxed">
           Add subscriptions, rent, or salary to auto-track on a schedule.
         </Text>
-        <Button className="mt-5" size="sm" onPress={() => setFormOpen(true)}>
+        <Button className="mt-5" size="sm" onPress={openCreate}>
           <Button.Label>Add recurring payment</Button.Label>
         </Button>
       </View>
@@ -171,7 +144,7 @@ export default function RecurringScreen() {
           renderItem={({ item }) => (
             <RecurringCard
               rule={item}
-              onEdit={setEditTarget}
+              onEdit={openEdit}
               onToggle={handleToggle}
               onDelete={handleDelete}
             />
@@ -201,21 +174,6 @@ export default function RecurringScreen() {
           }
         />
       )}
-
-      <RecurringFormSheet
-        isOpen={formOpen}
-        onOpenChange={setFormOpen}
-        onSubmit={handleCreate}
-        isPending={create.isPending}
-      />
-
-      <RecurringFormSheet
-        isOpen={!!editTarget}
-        onOpenChange={(open) => !open && setEditTarget(undefined)}
-        onSubmit={handleEdit}
-        isPending={update.isPending}
-        defaultValues={editTarget}
-      />
     </SafeAreaView>
   );
 }
