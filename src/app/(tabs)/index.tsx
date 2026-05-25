@@ -34,7 +34,7 @@ import {
   TransactionAttachment,
   type SelectedTransaction,
 } from "@/components/chat/TransactionAttachment";
-import { createDrawerNavigator } from "@react-navigation/drawer";
+import { createDrawerNavigator } from "expo-router/build/react-navigation/drawer";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { Feather } from "@expo/vector-icons";
 import {

@@ -55,7 +55,7 @@ export function AuthShell({
         locations={[0, 0.5, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0.85, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
       />
       <SafeAreaView className="flex-1 bg-transparent">
         <KeyboardAwareScrollView

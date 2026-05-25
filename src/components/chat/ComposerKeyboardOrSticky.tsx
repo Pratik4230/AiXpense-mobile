@@ -1,4 +1,4 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useBottomTabBarHeight } from "expo-router/js-tabs";
 import { useLayoutEffect, useMemo, type ReactNode } from "react";
 import { Platform } from "react-native";
 import Reanimated, {
