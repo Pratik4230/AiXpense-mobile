@@ -1,24 +1,17 @@
+import { File } from "expo-file-system";
 import { authClient } from "@/lib/authClient";
 import { webApiBase } from "@/lib/env";
 
-/**
- * Sends recorded audio to the Next.js `/api/voice` route (Sarvam STT), same contract as web `useSarvamSTT`.
- */
 export async function transcribeVoiceRecording(params: {
   uri: string;
   fileName?: string;
-  mimeType?: string;
 }): Promise<string> {
   const cookies = authClient.getCookie();
   const fileName = params.fileName ?? "audio.m4a";
-  const mimeType = params.mimeType ?? "audio/mp4";
 
+  const audioFile = new File(params.uri);
   const form = new FormData();
-  form.append("audio", {
-    uri: params.uri,
-    name: fileName,
-    type: mimeType,
-  } as unknown as Blob);
+  form.append("audio", audioFile, fileName);
 
   const res = await fetch(`${webApiBase()}/api/voice`, {
     method: "POST",

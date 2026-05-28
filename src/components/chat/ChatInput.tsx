@@ -131,7 +131,6 @@ export function ChatInput({
       const transcript = await transcribeVoiceRecording({
         uri,
         fileName: "audio.m4a",
-        mimeType: "audio/mp4",
       });
       onVoiceTranscript(transcript);
     } catch (e) {

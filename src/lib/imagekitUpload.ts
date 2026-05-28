@@ -1,3 +1,4 @@
+import { File } from "expo-file-system";
 import { authClient } from "@/lib/authClient";
 import { webApiBase } from "@/lib/env";
 
@@ -43,11 +44,7 @@ export async function uploadFileToImageKit(
   const auth = await fetchImageKitAuth();
 
   const form = new FormData();
-  form.append("file", {
-    uri: params.uri,
-    name: params.fileName,
-    type: params.mimeType,
-  } as unknown as Blob);
+  form.append("file", new File(params.uri), params.fileName);
   form.append("fileName", params.fileName);
   form.append("folder", params.folder);
   form.append("signature", auth.signature);
