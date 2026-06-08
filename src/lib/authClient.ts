@@ -19,8 +19,15 @@ function getStoragePrefix(): string {
   return extra?.storagePrefix ?? getAppScheme();
 }
 
+const CLIENT_PLATFORM_HEADER = "x-aixpense-client";
+
 export const authClient = createAuthClient({
   baseURL: webApiBase(),
+  fetchOptions: {
+    headers: {
+      [CLIENT_PLATFORM_HEADER]: "android",
+    },
+  },
   plugins: [
     expoClient({
       scheme: getAppScheme(),

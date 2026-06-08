@@ -56,6 +56,8 @@ export default function SignupScreen() {
       name: data.name,
       email: data.email,
       password: data.password,
+      // @ts-expect-error betterAuth additionalFields passed through signUp body
+      signupPlatform: "android",
     });
     console.log("[auth][signup] submit:result", {
       hasError: Boolean(result.error),

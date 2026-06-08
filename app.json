@@ -33,6 +33,7 @@
     },
     "plugins": [
       "./plugins/withDisableNotificationsBootActions",
+      "expo-asset",
       "expo-router",
       "expo-font",
       "expo-image",
@@ -75,6 +76,12 @@
         "projectId": "37c16a13-4c4e-4abf-b828-ddb2292826ec"
       }
     },
-    "owner": "pratik4230"
+    "owner": "pratik4230",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/37c16a13-4c4e-4abf-b828-ddb2292826ec"
+    }
   }
 }
