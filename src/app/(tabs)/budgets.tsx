@@ -1,14 +1,19 @@
-import { useRef } from "react";
-import { View, Text, FlatList, RefreshControl } from "react-native";
+import { useState } from "react";
+import { View, Text, FlatList, RefreshControl, Alert, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Button, Card, useThemeColor } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SafeAreaView } from "@/components/ui";
 import { BudgetCard } from "@/components/budgets/BudgetCard";
-import { BudgetSheet } from "@/components/budgets/BudgetSheet";
-import type { BudgetSheetRef } from "@/components/budgets/BudgetSheet";
-import { useBudgets } from "@/services/budgets";
+import { BudgetsSheet, type BudgetSheetMode } from "@/components/budgets/BudgetsSheet";
+import {
+  useBudgets,
+  useCreateBudget,
+  useUpdateBudget,
+  useDeleteBudget,
+} from "@/services/budgets";
 import type { Budget } from "@/types/budget";
+import type { Category } from "@/constants/expense";
 import { useCurrency } from "@/hooks/useCurrency";
 
 function BudgetSkeleton() {
@@ -26,12 +31,22 @@ function BudgetSkeleton() {
 }
 
 export default function BudgetsScreen() {
-  const addSheetRef = useRef<BudgetSheetRef>(null);
+  const [sheetMode, setSheetMode] = useState<BudgetSheetMode>(null);
+
   const { data: budgets, isLoading, isRefetching, refetch } = useBudgets();
+  const createMutation = useCreateBudget();
+  const updateMutation = useUpdateBudget();
+  const deleteMutation = useDeleteBudget();
+  const isFormPending = createMutation.isPending || updateMutation.isPending;
+
   const [accentColor] = useThemeColor(["accent"]);
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 20) + 8;
-  const { format } = useCurrency();
+  const { code: accountCurrencyCode, format } = useCurrency();
+  const editBudget =
+    sheetMode?.type === "edit" ? sheetMode.budget : undefined;
+  const limitCurrencyCode =
+    editBudget?.currency ?? accountCurrencyCode;
 
   const existingCategories = budgets?.map((b) => b.category) ?? [];
   const totalBudget = budgets?.reduce((s, b) => s + b.amount, 0) ?? 0;
@@ -44,6 +59,29 @@ export default function BudgetsScreen() {
   const budgetsOverLimit =
     budgets?.filter((b) => b.spent > b.amount).length ?? 0;
   const hasBudgets = !isLoading && budgets && budgets.length > 0;
+
+  const closeSheet = () => setSheetMode(null);
+
+  const handleCreate = (data: { category: Category; amount: number }) => {
+    createMutation.mutate(data, {
+      onSuccess: closeSheet,
+      onError: () => Alert.alert("Error", "Failed to create budget."),
+    });
+  };
+
+  const handleUpdate = (data: { id: string; amount: number }) => {
+    updateMutation.mutate(data, {
+      onSuccess: closeSheet,
+      onError: () => Alert.alert("Error", "Failed to update budget."),
+    });
+  };
+
+  const handleDeleteConfirm = (budget: Budget) => {
+    deleteMutation.mutate(budget._id, {
+      onSuccess: closeSheet,
+      onError: () => Alert.alert("Error", "Failed to delete budget."),
+    });
+  };
 
   const ListHeader = (
     <View className="px-4">
@@ -59,14 +97,14 @@ export default function BudgetsScreen() {
             Monthly limits by category to stay ahead of your spending.
           </Text>
         </View>
-        <Button
-          onPress={() => addSheetRef.current?.open()}
-          size="sm"
-          className="shrink-0"
+        <Pressable
+          onPress={() => setSheetMode({ type: "add" })}
+          className="shrink-0 flex-row items-center gap-1.5 h-9 px-3.5 rounded-3xl bg-accent active:opacity-90"
+          accessibilityLabel="Add budget"
         >
           <Ionicons name="add" size={17} color="white" />
-          <Button.Label>Add</Button.Label>
-        </Button>
+          <Text className="text-sm font-medium text-accent-foreground">Add</Text>
+        </Pressable>
       </View>
 
       {hasBudgets && (
@@ -140,7 +178,7 @@ export default function BudgetsScreen() {
         </Text>
       </View>
       <Button
-        onPress={() => addSheetRef.current?.open()}
+        onPress={() => setSheetMode({ type: "add" })}
         className="min-w-[220px]"
       >
         <Ionicons name="add" size={17} color="white" />
@@ -150,33 +188,52 @@ export default function BudgetsScreen() {
   ) : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <FlatList
-        data={isLoading ? [] : (budgets ?? [])}
-        keyExtractor={(b) => b._id}
-        renderItem={({ item }: { item: Budget }) => (
-          <View className="px-4 mb-3">
-            <BudgetCard budget={item} existingCategories={existingCategories} />
-          </View>
-        )}
-        ListHeaderComponent={ListHeader}
-        ListEmptyComponent={EmptyState}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingBottom: bottomPad,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={accentColor}
-            colors={[accentColor]}
-          />
-        }
-      />
+    <>
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        <FlatList
+          data={isLoading ? [] : (budgets ?? [])}
+          keyExtractor={(b) => b._id}
+          renderItem={({ item }: { item: Budget }) => (
+            <View className="px-4 mb-3">
+              <BudgetCard
+                budget={item}
+                onEdit={(budget) => setSheetMode({ type: "edit", budget })}
+                onDelete={(budget) =>
+                  setSheetMode({ type: "delete", budget })
+                }
+              />
+            </View>
+          )}
+          ListHeaderComponent={ListHeader}
+          ListEmptyComponent={EmptyState}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: bottomPad,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={accentColor}
+              colors={[accentColor]}
+            />
+          }
+        />
+      </SafeAreaView>
 
-      <BudgetSheet ref={addSheetRef} existingCategories={existingCategories} />
-    </SafeAreaView>
+      <BudgetsSheet
+        mode={sheetMode}
+        onClose={closeSheet}
+        existingCategories={existingCategories}
+        onCreate={handleCreate}
+        onUpdate={handleUpdate}
+        onDeleteConfirm={handleDeleteConfirm}
+        isFormPending={isFormPending}
+        isDeletePending={deleteMutation.isPending}
+        formatAmount={format}
+        limitCurrencyCode={limitCurrencyCode}
+      />
+    </>
   );
 }

@@ -1,15 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
+import { useThemeColor } from "heroui-native";
 import {
-  View,
-  Text,
   Pressable,
   ScrollView,
-  useColorScheme,
   StyleSheet,
+  Text,
+  useColorScheme,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import * as Haptics from "expo-haptics";
-import { Ionicons } from "@expo/vector-icons";
-import { useThemeColor } from "heroui-native";
 // ─── Tool groups ──────────────────────────────────────────────────────────────
 // Each group maps to one or more backend AI tools so users can discover every
 // capability at a glance.
@@ -136,7 +136,7 @@ export function ChatEmptyState({
       </View>
 
       <Text className="text-[26px] font-semibold text-foreground leading-tight tracking-[-0.4px] mt-7">
-        What can I help{"\n"}you with today?
+        Hello! What can I help{"\n"}you with today?
       </Text>
 
       {/* ── Tool groups ── */}
