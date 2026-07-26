@@ -136,9 +136,8 @@ export function ChatEmptyState({
       </View>
 
       <Text className="text-[26px] font-semibold text-foreground leading-tight tracking-[-0.4px] mt-7">
-        Hello! What can I help{"\n"}you with today?
+        Tell me about an expense. I&apos;ll handle the rest.
       </Text>
-
       {/* ── Tool groups ── */}
       {onSuggestionPress || onScanBillPress ? (
         <View style={styles.groups}>

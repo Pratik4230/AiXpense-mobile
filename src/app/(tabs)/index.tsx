@@ -45,7 +45,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  FREE_DAILY_LIMIT,
+  FREE_LIFETIME_LIMIT,
   TRIAL_LIMIT_ERROR_MESSAGE,
   TRIALS_QUERY_KEY,
   isTrialLimitError,
@@ -117,7 +117,7 @@ function ChatSession({
   const showUpgradeAlert = useCallback(() => {
     Alert.alert(
       "Upgrade to Premium",
-      `You've used all ${FREE_DAILY_LIMIT} free AI messages for today. They reset at midnight IST. Upgrade for unlimited access.`,
+      `You've used all ${FREE_LIFETIME_LIMIT} free AI messages. Upgrade for unlimited access.`,
       [
         { text: "Not now", style: "cancel" },
         {

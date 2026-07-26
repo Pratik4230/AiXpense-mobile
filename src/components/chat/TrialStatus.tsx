@@ -1,7 +1,7 @@
 import { Pressable, Text, View, useColorScheme } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "heroui-native";
-import { FREE_DAILY_LIMIT, trialUsage } from "@/services/trials";
+import { FREE_LIFETIME_LIMIT, trialUsage } from "@/services/trials";
 
 interface TrialStatusProps {
   isPremium: boolean;
@@ -55,7 +55,7 @@ export function TrialStatus({
           className="text-[11px] font-bold flex-1 text-right"
           style={{ color: exhausted ? "#ef4444" : accentColor }}
         >
-          {remaining} of {FREE_DAILY_LIMIT} left
+          {remaining} of {FREE_LIFETIME_LIMIT} left
         </Text>
       </View>
 
@@ -90,7 +90,7 @@ export function TrialStatus({
       onPress={onPress}
       className="active:opacity-85"
       accessibilityRole="button"
-      accessibilityLabel={`${remaining} of ${FREE_DAILY_LIMIT} free messages left, ${used} used today`}
+      accessibilityLabel={`${remaining} of ${FREE_LIFETIME_LIMIT} free messages left, ${used} used`}
     >
       {card}
     </Pressable>

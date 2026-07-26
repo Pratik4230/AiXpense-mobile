@@ -319,7 +319,9 @@ export default function ProfileScreen() {
             {!isPremium && (
               <View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted">Free messages today</Text>
+                  <Text className="text-sm text-muted">
+                    Free messages remaining
+                  </Text>
                   <Text className="text-sm font-semibold text-foreground">
                     {freeTrials} / {MAX_FREE_TRIALS}
                   </Text>

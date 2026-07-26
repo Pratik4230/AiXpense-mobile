@@ -12,7 +12,10 @@ type ApiRequestInit = Omit<RequestInit, "body" | "headers"> & {
   params?: Record<string, string | number | boolean | null | undefined>;
 };
 
-function withQueryParams(url: string, params?: ApiRequestInit["params"]): string {
+function withQueryParams(
+  url: string,
+  params?: ApiRequestInit["params"],
+): string {
   if (!params) return url;
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -32,11 +35,14 @@ async function request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
     ...(cookie ? { Cookie: cookie } : {}),
   };
 
-  const res = await fetch(withQueryParams(joinUrl(webApiBase(), path), init.params), {
-    ...init,
-    headers,
-    body: init.body == null ? undefined : JSON.stringify(init.body),
-  });
+  const res = await fetch(
+    withQueryParams(joinUrl(webApiBase(), path), init.params),
+    {
+      ...init,
+      headers,
+      body: init.body == null ? undefined : JSON.stringify(init.body),
+    },
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -49,16 +55,30 @@ async function request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
 
 // Axios-like surface area used across the app.
 export const api = {
-  get: async <T>(path: string, init?: Omit<ApiRequestInit, "method" | "body">) => ({
+  get: async <T>(
+    path: string,
+    init?: Omit<ApiRequestInit, "method" | "body">,
+  ) => ({
     data: await request<T>(path, { ...init, method: "GET" }),
   }),
-  post: async <T>(path: string, body?: unknown, init?: Omit<ApiRequestInit, "method" | "body">) => ({
+  post: async <T>(
+    path: string,
+    body?: unknown,
+    init?: Omit<ApiRequestInit, "method" | "body">,
+  ) => ({
     data: await request<T>(path, { ...init, method: "POST", body }),
   }),
-  patch: async <T>(path: string, body?: unknown, init?: Omit<ApiRequestInit, "method" | "body">) => ({
+  patch: async <T>(
+    path: string,
+    body?: unknown,
+    init?: Omit<ApiRequestInit, "method" | "body">,
+  ) => ({
     data: await request<T>(path, { ...init, method: "PATCH", body }),
   }),
-  delete: async <T = unknown>(path: string, init?: Omit<ApiRequestInit, "method" | "body">) => ({
+  delete: async <T = unknown>(
+    path: string,
+    init?: Omit<ApiRequestInit, "method" | "body">,
+  ) => ({
     data: await request<T>(path, { ...init, method: "DELETE" }),
   }),
 };
