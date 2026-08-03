@@ -31,17 +31,23 @@ const heroConfig: HeroUINativeConfig = {
   devInfo: { stylingPrinciples: false },
 };
 
+/** Don't block forever if session/fonts stall (network / SecureStore). */
+const BOOT_TIMEOUT_MS = 8_000;
+
 export default function RootLayout() {
   const { data: session, isPending } = authClient.useSession();
-  const [authReady, setAuthReady] = useState(false);
-  const [resolvedSession, setResolvedSession] = useState<typeof session>(null);
+  const [bootTimedOut, setBootTimedOut] = useState(false);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const fontsReady = fontsLoaded || fontError != null;
+  const authSettled = !isPending;
+  const appReady = (fontsReady && authSettled) || bootTimedOut;
+  const resolvedSession = authSettled ? (session ?? null) : null;
 
   useEffect(() => {
     const saved = storage.getString(THEME_KEY) as
@@ -49,26 +55,24 @@ export default function RootLayout() {
       | "dark"
       | "system"
       | undefined;
-    Uniwind.setTheme(saved ?? "system");
+    // Match app.json userInterfaceStyle: "dark" when no preference saved
+    Uniwind.setTheme(saved ?? "dark");
   }, []);
 
   useEffect(() => {
-    if (!isPending) {
-      setResolvedSession(session ?? null);
-      setAuthReady(true);
-    }
-  }, [isPending, session]);
+    const t = setTimeout(() => setBootTimedOut(true), BOOT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    if (fontsLoaded && authReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, authReady]);
+    if (!appReady) return;
+    SplashScreen.hideAsync().catch(() => {});
+  }, [appReady]);
 
-  if (!fontsLoaded || !authReady) return null;
+  if (!appReady) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000000" }}>
       <KeyboardProvider>
         <HeroUINativeProvider config={heroConfig}>
           <QueryClientProvider client={queryClient}>
