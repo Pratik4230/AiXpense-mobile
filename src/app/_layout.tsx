@@ -86,6 +86,17 @@ export default function RootLayout() {
                   name="recurring"
                   options={{ presentation: "card" }}
                 />
+                <Stack.Screen
+                  name="currency"
+                  options={{
+                    presentation: "formSheet",
+                    headerShown: false,
+                    sheetAllowedDetents: [0.55, 0.92],
+                    sheetInitialDetentIndex: 1,
+                    sheetGrabberVisible: true,
+                    sheetCornerRadius: 24,
+                  }}
+                />
               </Stack.Protected>
             </Stack>
           </QueryClientProvider>
