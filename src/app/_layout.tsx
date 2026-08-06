@@ -11,6 +11,7 @@ import { authClient } from "@/lib/authClient";
 import { storage, THEME_KEY } from "@/lib/storage";
 import { useWidgetSync } from "@/hooks/useWidgetSync";
 import { useBiometricAppLock } from "@/hooks/useBiometricAppLock";
+import { usePlayStoreUpdateCheck } from "@/hooks/usePlayStoreUpdateCheck";
 import { BiometricLockScreen } from "@/components/biometric/BiometricLockScreen";
 import { HeroUINativeProvider, type HeroUINativeConfig } from "heroui-native";
 import { useFonts } from "expo-font";
@@ -55,6 +56,7 @@ export default function RootLayout() {
 
   useWidgetSync(!!resolvedSession);
   const { isLocked, unlock } = useBiometricAppLock(!!resolvedSession);
+  usePlayStoreUpdateCheck();
 
   useEffect(() => {
     const saved = storage.getString(THEME_KEY) as
