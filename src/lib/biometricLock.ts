@@ -14,11 +14,19 @@ export type BiometricAvailability = {
 };
 
 export function isBiometricLockEnabled(): boolean {
-  return storage.getBoolean(BIOMETRIC_LOCK_ENABLED_KEY) === true;
+  try {
+    return storage.getBoolean(BIOMETRIC_LOCK_ENABLED_KEY) === true;
+  } catch {
+    return false;
+  }
 }
 
 export function setBiometricLockEnabled(enabled: boolean) {
-  storage.set(BIOMETRIC_LOCK_ENABLED_KEY, enabled);
+  try {
+    storage.set(BIOMETRIC_LOCK_ENABLED_KEY, enabled);
+  } catch {
+    /* SSR / no storage */
+  }
 }
 
 export async function getBiometricAvailability(): Promise<BiometricAvailability> {
