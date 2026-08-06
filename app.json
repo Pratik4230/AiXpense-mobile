@@ -68,6 +68,15 @@
           "enableBackgroundPlayback": false
         }
       ],
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["image/*"],
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
+          }
+        }
+      ],
       "expo-notifications"
     ],
     "experiments": {

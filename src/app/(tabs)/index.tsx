@@ -29,6 +29,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { TrialStatus } from "@/components/chat/TrialStatus";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { useReceiptCapture } from "@/hooks/useReceiptCapture";
+import { useShareIntentReceipt } from "@/hooks/useShareIntentReceipt";
 import {
   useOfflineQueue,
   useOfflineQueueFlusher,
@@ -505,6 +506,15 @@ function ChatSession({
     onCaptureDismissed: () => {
       pendingReceiptPromptRef.current = null;
     },
+  });
+
+  useShareIntentReceipt({
+    enabled: true,
+    isOnline,
+    disabled:
+      isStreaming || isTrialsFetching || receiptUploading || !!selectedTransaction,
+    onUploaded: handleReceiptUploaded,
+    onQueued: handleReceiptQueued,
   });
 
   const handleScanBillPress = useCallback(

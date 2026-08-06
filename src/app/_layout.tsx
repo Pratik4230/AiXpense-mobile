@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Uniwind } from "uniwind";
+import { ShareIntentProvider } from "expo-share-intent";
 import { authClient } from "@/lib/authClient";
 import { storage, THEME_KEY } from "@/lib/storage";
 import { HeroUINativeProvider, type HeroUINativeConfig } from "heroui-native";
@@ -69,43 +70,50 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => {});
   }, [appReady]);
 
-  if (!appReady) return null;
-
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000000" }}>
-      <KeyboardProvider>
-        <HeroUINativeProvider config={heroConfig}>
-          <QueryClientProvider client={queryClient}>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Protected guard={!resolvedSession}>
-                <Stack.Screen name="(auth)" />
-              </Stack.Protected>
-              <Stack.Protected guard={!!resolvedSession}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen
-                  name="transactions"
-                  options={{ presentation: "card" }}
-                />
-                <Stack.Screen
-                  name="recurring"
-                  options={{ presentation: "card" }}
-                />
-                <Stack.Screen
-                  name="currency"
-                  options={{
-                    presentation: "formSheet",
-                    headerShown: false,
-                    sheetAllowedDetents: [0.55, 0.92],
-                    sheetInitialDetentIndex: 1,
-                    sheetGrabberVisible: true,
-                    sheetCornerRadius: 24,
-                  }}
-                />
-              </Stack.Protected>
-            </Stack>
-          </QueryClientProvider>
-        </HeroUINativeProvider>
-      </KeyboardProvider>
-    </GestureHandlerRootView>
+    <ShareIntentProvider
+      options={{
+        // Keep shared image through auth / brief background until chat handles it
+        resetOnBackground: false,
+      }}
+    >
+      {!appReady ? null : (
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000000" }}>
+          <KeyboardProvider>
+            <HeroUINativeProvider config={heroConfig}>
+              <QueryClientProvider client={queryClient}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Protected guard={!resolvedSession}>
+                    <Stack.Screen name="(auth)" />
+                  </Stack.Protected>
+                  <Stack.Protected guard={!!resolvedSession}>
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen
+                      name="transactions"
+                      options={{ presentation: "card" }}
+                    />
+                    <Stack.Screen
+                      name="recurring"
+                      options={{ presentation: "card" }}
+                    />
+                    <Stack.Screen
+                      name="currency"
+                      options={{
+                        presentation: "formSheet",
+                        headerShown: false,
+                        sheetAllowedDetents: [0.55, 0.92],
+                        sheetInitialDetentIndex: 1,
+                        sheetGrabberVisible: true,
+                        sheetCornerRadius: 24,
+                      }}
+                    />
+                  </Stack.Protected>
+                </Stack>
+              </QueryClientProvider>
+            </HeroUINativeProvider>
+          </KeyboardProvider>
+        </GestureHandlerRootView>
+      )}
+    </ShareIntentProvider>
   );
 }
