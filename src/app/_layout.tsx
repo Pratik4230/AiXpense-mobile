@@ -9,6 +9,7 @@ import { Uniwind } from "uniwind";
 import { ShareIntentProvider } from "expo-share-intent";
 import { authClient } from "@/lib/authClient";
 import { storage, THEME_KEY } from "@/lib/storage";
+import { useWidgetSync } from "@/hooks/useWidgetSync";
 import { HeroUINativeProvider, type HeroUINativeConfig } from "heroui-native";
 import { useFonts } from "expo-font";
 import {
@@ -49,6 +50,8 @@ export default function RootLayout() {
   const authSettled = !isPending;
   const appReady = (fontsReady && authSettled) || bootTimedOut;
   const resolvedSession = authSettled ? (session ?? null) : null;
+
+  useWidgetSync(!!resolvedSession);
 
   useEffect(() => {
     const saved = storage.getString(THEME_KEY) as

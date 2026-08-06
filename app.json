@@ -77,6 +77,24 @@
           }
         }
       ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "TodaySpend",
+              "label": "Today's spend",
+              "description": "See how much you've spent today and open AiXpense",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
       "expo-notifications"
     ],
     "experiments": {

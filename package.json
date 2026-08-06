@@ -1,6 +1,6 @@
 {
   "name": "aixpense-mobile",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.0.0",
   "scripts": {
     "dev": "APP_VARIANT=development expo start",
@@ -59,6 +59,7 @@
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.2",
     "react-native": "0.85.3",
+    "react-native-android-widget": "^0.21.0",
     "react-native-gesture-handler": "~2.31.1",
     "react-native-gifted-charts": "^1.4.74",
     "react-native-keyboard-controller": "1.21.6",
