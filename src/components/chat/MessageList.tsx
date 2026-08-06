@@ -22,6 +22,10 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   parts: any[];
+  /** Offline queue presentation */
+  pendingStatus?: "queued" | "syncing" | "failed";
+  pendingJobId?: string;
+  pendingError?: string;
 }
 
 function Divider({ isDark }: { isDark: boolean }) {
@@ -716,11 +720,13 @@ function MessageBubble({
   isDark,
   setActionTarget,
   outdatedIds,
+  onPendingPress,
 }: {
   message: ChatMessage;
   isDark: boolean;
   setActionTarget: (target: ActionTarget) => void;
   outdatedIds: Map<string, string>;
+  onPendingPress?: (jobId: string, status: NonNullable<ChatMessage["pendingStatus"]>) => void;
 }) {
   const { width: windowWidth } = useWindowDimensions();
   const { symbol: currencySymbol } = useCurrency();
@@ -739,6 +745,7 @@ function MessageBubble({
   const hasTools = toolParts.length > 0;
   const receiptThumbW = Math.min(windowWidth * 0.72, 280);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const isPending = !!message.pendingStatus;
 
   return (
     <View
@@ -846,6 +853,36 @@ function MessageBubble({
           })}
         </View>
       )}
+
+      {isUser && isPending && message.pendingStatus && (
+        <Pressable
+          onPress={() => {
+            if (!message.pendingJobId) return;
+            void Haptics.selectionAsync();
+            onPendingPress?.(message.pendingJobId, message.pendingStatus!);
+          }}
+          style={{ marginTop: 4, alignSelf: "flex-end" }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "600",
+              color:
+                message.pendingStatus === "failed"
+                  ? "#ef4444"
+                  : isDark
+                    ? "#a1a1aa"
+                    : "#71717a",
+            }}
+          >
+            {message.pendingStatus === "syncing"
+              ? "Syncing…"
+              : message.pendingStatus === "failed"
+                ? `Failed · tap to retry`
+                : "Waiting for network"}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -857,6 +894,7 @@ interface Props {
   onDelete: (id: string, type: "expense" | "income", item: string, amount: number, currency?: string) => void;
   outdatedIds: Map<string, string>;
   onScroll?: any;
+  onPendingPress?: (jobId: string, status: NonNullable<ChatMessage["pendingStatus"]>) => void;
 }
 
 export function MessageList({
@@ -866,6 +904,7 @@ export function MessageList({
   onDelete,
   outdatedIds,
   onScroll,
+  onPendingPress,
 }: Props) {
   const isDark = useColorScheme() === "dark";
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
@@ -916,10 +955,11 @@ export function MessageList({
           isDark={isDark}
           setActionTarget={setActionTarget}
           outdatedIds={outdatedIds}
+          onPendingPress={onPendingPress}
         />
       );
     },
-    [isDark, outdatedIds],
+    [isDark, outdatedIds, onPendingPress],
   );
 
   return (

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Platform,
   View,
+  Text,
   useColorScheme,
   Alert,
   ActivityIndicator,
@@ -18,6 +19,7 @@ import {
 import { Button, Input } from "heroui-native";
 import type { SelectedTransaction } from "./TransactionAttachment";
 import { transcribeVoiceRecording } from "@/lib/voiceTranscription";
+import { VOICE_MAX_SECONDS } from "@/constants/voice";
 
 interface Props {
   value: string;
@@ -26,7 +28,10 @@ interface Props {
   isLoading: boolean;
   selectedTransaction?: SelectedTransaction | null;
   isPremium: boolean;
+  /** When false, recorded audio is queued instead of transcribed immediately. */
+  isOnline?: boolean;
   onVoiceTranscript: (text: string) => void;
+  onOfflineVoice?: (args: { uri: string; fileName: string }) => void;
   startReceiptCapture: () => void;
   receiptUploading: boolean;
 }
@@ -38,7 +43,9 @@ export function ChatInput({
   isLoading,
   selectedTransaction,
   isPremium,
+  isOnline = true,
   onVoiceTranscript,
+  onOfflineVoice,
   startReceiptCapture,
   receiptUploading,
 }: Props) {
@@ -48,6 +55,8 @@ export function ChatInput({
   const canSend = isDelete || hasText;
   const [voiceProcessing, setVoiceProcessing] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(VOICE_MAX_SECONDS);
+  const autoStoppingRef = useRef(false);
 
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
@@ -61,12 +70,16 @@ export function ChatInput({
     : isRecording
       ? "Listening..."
       : voiceProcessing
-        ? "Transcribing..."
+        ? isOnline
+          ? "Transcribing..."
+          : "Saving voice offline..."
         : selectedTransaction
           ? selectedTransaction.action === "delete"
             ? "Tap send to confirm delete..."
             : "Type what to change..."
-          : "Message...";
+          : isOnline
+            ? "Message..."
+            : "Offline · message will sync later";
 
   useEffect(() => {
     return () => {
@@ -95,6 +108,8 @@ export function ChatInput({
     }
 
     try {
+      autoStoppingRef.current = false;
+      setSecondsLeft(VOICE_MAX_SECONDS);
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
@@ -107,8 +122,8 @@ export function ChatInput({
     }
   };
 
-  const stopVoiceRecording = async () => {
-    if (!isRecording) return;
+  const stopVoiceRecording = useCallback(async () => {
+    if (!audioRecorder.getStatus().isRecording && !isRecording) return;
 
     try {
       await audioRecorder.stop();
@@ -128,6 +143,19 @@ export function ChatInput({
         allowsRecording: false,
         playsInSilentMode: true,
       });
+
+      if (!isOnline) {
+        if (!onOfflineVoice) {
+          Alert.alert(
+            "You're offline",
+            "Connect to the internet to transcribe voice, or update the app.",
+          );
+          return;
+        }
+        onOfflineVoice({ uri, fileName: "audio.m4a" });
+        return;
+      }
+
       const transcript = await transcribeVoiceRecording({
         uri,
         fileName: "audio.m4a",
@@ -138,8 +166,45 @@ export function ChatInput({
       Alert.alert("Voice input", msg);
     } finally {
       setVoiceProcessing(false);
+      autoStoppingRef.current = false;
+      setSecondsLeft(VOICE_MAX_SECONDS);
     }
-  };
+  }, [
+    audioRecorder,
+    isRecording,
+    isOnline,
+    onOfflineVoice,
+    onVoiceTranscript,
+  ]);
+
+  const stopVoiceRecordingRef = useRef(stopVoiceRecording);
+  useEffect(() => {
+    stopVoiceRecordingRef.current = stopVoiceRecording;
+  }, [stopVoiceRecording]);
+
+  // Countdown only while recording — updates happen in the interval callback (not sync on mount).
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (!isRecording || secondsLeft > 0) return;
+    if (autoStoppingRef.current) return;
+    autoStoppingRef.current = true;
+    void stopVoiceRecordingRef.current();
+  }, [isRecording, secondsLeft]);
 
   const onMicPress = () => {
     if (receiptUploading) return;
@@ -172,120 +237,147 @@ export function ChatInput({
           gap: 8,
         }}
       >
-      <View
-        pointerEvents={isInputFocused ? "none" : "auto"}
-        style={{
-          width: isInputFocused ? 0 : 40,
-          opacity: isInputFocused ? 0 : 1,
-          overflow: "hidden",
-        }}
-      >
-        <Pressable
-          onPress={onAttachPress}
-          disabled={busy || !!isDelete || !!selectedTransaction || voiceBusy}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 999,
-            marginBottom: 2,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity:
-              busy || isDelete || selectedTransaction || voiceBusy
-                ? 0.35
-                : pressed
-                  ? 0.75
-                  : 1,
-            backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-          })}
-          hitSlop={8}
+        <View
+          pointerEvents={isInputFocused ? "none" : "auto"}
+          style={{
+            width: isInputFocused ? 0 : 40,
+            opacity: isInputFocused ? 0 : 1,
+            overflow: "hidden",
+          }}
         >
-          {receiptUploading ? (
-            <ActivityIndicator size="small" color="#f97316" />
-          ) : (
-            <Ionicons
-              name={isPremium ? "camera-outline" : "lock-closed-outline"}
-              size={20}
-              color={isPremium ? iconMuted : "#a16207"}
-            />
-          )}
-        </Pressable>
-      </View>
-
-      <Input
-        value={value}
-        onChangeText={onChange}
-        onFocus={() => setIsInputFocused(true)}
-        onBlur={() => setIsInputFocused(false)}
-        placeholder={placeholder}
-        multiline
-        maxLength={500}
-        submitBehavior="newline"
-        isDisabled={busy || !!isDelete || isRecording}
-        className="flex-1 rounded-[22px] px-4"
-        style={{
-          maxHeight: 120,
-          paddingVertical: Platform.OS === "android" ? 10 : 10,
-          fontSize: 16,
-          lineHeight: 22,
-          includeFontPadding: false,
-          textAlignVertical: "center",
-        }}
-      />
-
-      <View
-        pointerEvents={isInputFocused ? "none" : "auto"}
-        style={{
-          width: isInputFocused ? 0 : 40,
-          opacity: isInputFocused ? 0 : 1,
-          overflow: "hidden",
-        }}
-      >
-        <Pressable
-          onPress={onMicPress}
-          disabled={micDisabled && !isRecording}
-          style={({ pressed }) => ({
-            width: 40,
-            height: 40,
-            borderRadius: 999,
-            marginBottom: 2,
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: micDisabled && !isRecording ? 0.35 : pressed ? 0.75 : 1,
-            backgroundColor: isRecording
-              ? "rgba(239,68,68,0.22)"
-              : isDark
+          <Pressable
+            onPress={onAttachPress}
+            disabled={busy || !!isDelete || !!selectedTransaction || voiceBusy}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              marginBottom: 2,
+              alignItems: "center",
+              justifyContent: "center",
+              opacity:
+                busy || isDelete || selectedTransaction || voiceBusy
+                  ? 0.35
+                  : pressed
+                    ? 0.75
+                    : 1,
+              backgroundColor: isDark
                 ? "rgba(255,255,255,0.08)"
                 : "rgba(0,0,0,0.06)",
-          })}
-          hitSlop={8}
-        >
-          {voiceProcessing ? (
-            <ActivityIndicator size="small" color="#f97316" />
-          ) : (
-            <Ionicons
-              name={isRecording ? "stop" : "mic-outline"}
-              size={20}
-              color={isRecording ? "#ef4444" : iconMuted}
-            />
-          )}
-        </Pressable>
-      </View>
+            })}
+            hitSlop={8}
+          >
+            {receiptUploading ? (
+              <ActivityIndicator size="small" color="#f97316" />
+            ) : (
+              <Ionicons
+                name={isPremium ? "camera-outline" : "lock-closed-outline"}
+                size={20}
+                color={isPremium ? iconMuted : "#a16207"}
+              />
+            )}
+          </Pressable>
+        </View>
 
-      <Button
-        isIconOnly
-        size="sm"
-        onPress={onSend}
-        isDisabled={busy || !canSend}
-        className={`rounded-full w-10 h-10 self-end mb-0.5 ${isDelete ? "bg-danger" : ""}`}
-      >
-        <Ionicons
-          name={isDelete ? "trash" : "send"}
-          size={18}
-          color="#fff"
-          style={canSend && !isDelete ? { marginLeft: 2 } : undefined}
+        <Input
+          value={value}
+          onChangeText={onChange}
+          onFocus={() => setIsInputFocused(true)}
+          onBlur={() => setIsInputFocused(false)}
+          placeholder={placeholder}
+          multiline
+          maxLength={500}
+          submitBehavior="newline"
+          isDisabled={busy || !!isDelete || isRecording}
+          className="flex-1 rounded-[22px] px-4"
+          style={{
+            maxHeight: 120,
+            paddingVertical: Platform.OS === "android" ? 10 : 10,
+            fontSize: 16,
+            lineHeight: 22,
+            includeFontPadding: false,
+            textAlignVertical: "center",
+          }}
         />
-      </Button>
+
+        <View
+          pointerEvents={isInputFocused ? "none" : "auto"}
+          style={{
+            width: isInputFocused ? 0 : 40,
+            opacity: isInputFocused ? 0 : 1,
+            overflow: "hidden",
+          }}
+        >
+          <Pressable
+            onPress={onMicPress}
+            disabled={micDisabled && !isRecording}
+            style={({ pressed }) => ({
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              marginBottom: 2,
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+              opacity: micDisabled && !isRecording ? 0.35 : pressed ? 0.75 : 1,
+              backgroundColor: isRecording
+                ? "transparent"
+                : isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.06)",
+            })}
+            hitSlop={8}
+          >
+            {voiceProcessing ? (
+              <ActivityIndicator size="small" color="#f97316" />
+            ) : isRecording ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                  borderRadius: 999,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: isDark
+                    ? "rgba(239,68,68,0.18)"
+                    : "rgba(239,68,68,0.12)",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: "#ef4444",
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
+                  {secondsLeft}
+                </Text>
+              </View>
+            ) : (
+              <Ionicons name="mic-outline" size={20} color={iconMuted} />
+            )}
+          </Pressable>
+        </View>
+
+        <Button
+          isIconOnly
+          size="sm"
+          onPress={onSend}
+          isDisabled={busy || !canSend}
+          className={`rounded-full w-10 h-10 self-end mb-0.5 ${isDelete ? "bg-danger" : ""}`}
+        >
+          <Ionicons
+            name={isDelete ? "trash" : "send"}
+            size={18}
+            color="#fff"
+            style={canSend && !isDelete ? { marginLeft: 2 } : undefined}
+          />
+        </Button>
       </View>
     </View>
   );

@@ -29,6 +29,15 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { TrialStatus } from "@/components/chat/TrialStatus";
 import { ChatEmptyState } from "@/components/chat/ChatEmptyState";
 import { useReceiptCapture } from "@/hooks/useReceiptCapture";
+import {
+  useOfflineQueue,
+  useOfflineQueueFlusher,
+} from "@/hooks/useOfflineQueue";
+import { OfflineBanner } from "@/components/chat/OfflineBanner";
+import {
+  bindOfflineJobsToConversation,
+  offlineJobsToPendingMessages,
+} from "@/lib/offlineQueue";
 import { ComposerKeyboardOrSticky } from "@/components/chat/ComposerKeyboardOrSticky";
 import {
   TransactionAttachment,
@@ -154,9 +163,6 @@ function ChatSession({
   const [input, setInput] = useState("");
   const [selectedTransaction, setSelectedTransaction] =
     useState<SelectedTransaction | null>(null);
-  const [outdatedIds, setOutdatedIds] = useState<Map<string, string>>(
-    new Map(),
-  );
 
   const insets = useSafeAreaInsets();
   // Do not apply top padding on SafeAreaView — we position once with insets here.
@@ -187,6 +193,24 @@ function ChatSession({
   const pendingSaveRef = useRef(false);
   const pendingReceiptPromptRef = useRef<string | null>(null);
 
+  const chatDoneResolverRef = useRef<(() => void) | null>(null);
+  const chatDoneRejectRef = useRef<((err: Error) => void) | null>(null);
+  const chatWaitSawBusyRef = useRef(false);
+
+  const userId = session?.user?.id as string | undefined;
+  const {
+    isOnline,
+    jobsForConversation,
+    enqueueChat,
+    enqueueVoice,
+    enqueueReceipt,
+    retryJob,
+    queueVersion,
+  } = useOfflineQueue(userId);
+
+  const pendingJobs = jobsForConversation(conversationId);
+  void queueVersion;
+
   const { messages, sendMessage, status, error } = useChat({
     messages: initialMessages as any,
     transport: new DefaultChatTransport({
@@ -196,6 +220,13 @@ function ChatSession({
     }),
     onError: (err) => {
       console.error("Chat error:", err);
+      if (chatDoneRejectRef.current) {
+        chatDoneRejectRef.current(
+          err instanceof Error ? err : new Error(String(err)),
+        );
+        chatDoneResolverRef.current = null;
+        chatDoneRejectRef.current = null;
+      }
       if (isTrialLimitError(err.message)) {
         markTrialsExhausted();
         void invalidateTrials();
@@ -205,14 +236,106 @@ function ChatSession({
   });
 
   const isStreaming = status === "streaming";
+  const isChatIdle = status === "ready" || status === "error";
   const prevStatusRef = useRef(status);
 
-  const wasStreamingRef = useRef(false);
+  const waitForChatTurn = useCallback(() => {
+    chatWaitSawBusyRef.current = false;
+    return new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        chatDoneResolverRef.current = null;
+        chatDoneRejectRef.current = null;
+        chatWaitSawBusyRef.current = false;
+        reject(new Error("Chat sync timed out"));
+      }, 60_000);
+
+      chatDoneResolverRef.current = () => {
+        clearTimeout(timeout);
+        chatWaitSawBusyRef.current = false;
+        resolve();
+      };
+      chatDoneRejectRef.current = (err) => {
+        clearTimeout(timeout);
+        chatWaitSawBusyRef.current = false;
+        reject(err);
+      };
+    });
+  }, []);
+
+  const sendChatTextAndWait = useCallback(
+    async (text: string) => {
+      const wait = waitForChatTurn();
+      sendMessage({ text });
+      await wait;
+    },
+    [sendMessage, waitForChatTurn],
+  );
+
+  const sendReceiptAndWait = useCallback(
+    async (args: { text: string; url: string; mediaType: string }) => {
+      const wait = waitForChatTurn();
+      sendMessage({
+        role: "user",
+        parts: [
+          { type: "text", text: args.text },
+          { type: "file", mediaType: args.mediaType, url: args.url },
+        ],
+      } as any);
+      await wait;
+    },
+    [sendMessage, waitForChatTurn],
+  );
+
+  const flushHandlers = useMemo(
+    () => ({
+      sendChatText: sendChatTextAndWait,
+      sendReceipt: sendReceiptAndWait,
+      consumeTrial,
+      canUseTrialMessage,
+    }),
+    [
+      sendChatTextAndWait,
+      sendReceiptAndWait,
+      consumeTrial,
+      canUseTrialMessage,
+    ],
+  );
+
+  const { flushError } = useOfflineQueueFlusher(
+    userId,
+    conversationId,
+    isChatIdle && !isStreaming,
+    flushHandlers,
+  );
+
   useEffect(() => {
-    if (wasStreamingRef.current && status === "ready") {
-      if (!isPremium) invalidateTrials();
+    if (conversationId && userId) {
+      bindOfflineJobsToConversation(userId, conversationId);
     }
-    wasStreamingRef.current = status === "streaming";
+  }, [conversationId, userId]);
+
+  useEffect(() => {
+    if (!chatDoneResolverRef.current && !chatDoneRejectRef.current) {
+      return;
+    }
+
+    if (status === "submitted" || status === "streaming") {
+      chatWaitSawBusyRef.current = true;
+    }
+
+    if (status === "error") {
+      chatDoneRejectRef.current?.(new Error("Chat request failed"));
+      chatDoneResolverRef.current = null;
+      chatDoneRejectRef.current = null;
+      return;
+    }
+
+    if (status === "ready" && chatWaitSawBusyRef.current) {
+      if (!isPremium) invalidateTrials();
+      chatDoneResolverRef.current?.();
+      chatDoneResolverRef.current = null;
+      chatDoneRejectRef.current = null;
+    }
   }, [status, isPremium, invalidateTrials]);
 
   // Saving messages logic ported from web ChatView
@@ -286,12 +409,24 @@ function ChatSession({
     [createConversation, appendMessages, onConversationCreated],
   );
 
-  if (prevStatusRef.current === "streaming" && status === "ready") {
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg?.role === "assistant") {
-      saveMessages(messages);
+  // Persist conversation when a stream finishes.
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
 
-      for (const part of lastMsg.parts ?? []) {
+    if (prev !== "streaming" || status !== "ready") return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.role !== "assistant") return;
+
+    void saveMessages(messages);
+  }, [status, messages, saveMessages]);
+
+  const outdatedIds = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const msg of messages as any[]) {
+      if (msg?.role !== "assistant") continue;
+      for (const part of msg.parts ?? []) {
         const p = part as any;
         if (
           p.type === "tool-deleteTransaction" &&
@@ -299,9 +434,7 @@ function ChatSession({
           p.output?.success &&
           p.output.deleted?.id
         ) {
-          setOutdatedIds((prev) =>
-            new Map(prev).set(p.output.deleted.id, lastMsg.id),
-          );
+          map.set(p.output.deleted.id, msg.id);
         }
         if (
           p.type === "tool-updateTransaction" &&
@@ -309,14 +442,12 @@ function ChatSession({
           p.output?.success &&
           p.output.transaction?.id
         ) {
-          setOutdatedIds((prev) =>
-            new Map(prev).set(p.output.transaction.id, lastMsg.id),
-          );
+          map.set(p.output.transaction.id, msg.id);
         }
       }
     }
-  }
-  prevStatusRef.current = status;
+    return map;
+  }, [messages]);
 
   const handleReceiptUploaded = useCallback(
     (file: { url: string; mediaType: string }) => {
@@ -345,11 +476,32 @@ function ChatSession({
     ],
   );
 
+  const handleReceiptQueued = useCallback(
+    (file: { uri: string; fileName: string; mimeType: string }) => {
+      const text =
+        input.trim() ||
+        pendingReceiptPromptRef.current ||
+        "Scan this bill";
+      pendingReceiptPromptRef.current = null;
+      void enqueueReceipt({
+        sourceUri: file.uri,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        text,
+        conversationId: conversationIdRef.current,
+      });
+      setInput("");
+    },
+    [input, enqueueReceipt],
+  );
+
   const { startReceiptCapture, uploading: receiptUploading } = useReceiptCapture({
     isPremium,
+    isOnline,
     disabled:
       isStreaming || isTrialsFetching || !!selectedTransaction,
     onUploaded: handleReceiptUploaded,
+    onQueued: handleReceiptQueued,
     onCaptureDismissed: () => {
       pendingReceiptPromptRef.current = null;
     },
@@ -364,19 +516,34 @@ function ChatSession({
     [isStreaming, isTrialsFetching, receiptUploading, startReceiptCapture],
   );
 
+  const attachedPrefix = (tx: SelectedTransaction) => {
+    const cur =
+      tx.currency != null && tx.currency !== ""
+        ? `, currency=${tx.currency}`
+        : "";
+    return `[ATTACHED_TRANSACTION: id=${tx.id}, type=${tx.type}, item=${tx.item}, amount=${tx.amount}, action=${tx.action}${cur}]`;
+  };
+
+  const queueOrSendText = (text: string) => {
+    if (!isOnline) {
+      enqueueChat({
+        text,
+        conversationId: conversationIdRef.current,
+      });
+      return;
+    }
+    consumeTrial();
+    sendMessage({ text });
+  };
+
   const handleSend = () => {
     if (isStreaming || !canUseTrialMessage()) return;
 
     if (selectedTransaction) {
-      const cur =
-        selectedTransaction.currency != null && selectedTransaction.currency !== ""
-          ? `, currency=${selectedTransaction.currency}`
-          : "";
-      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
+      const prefix = attachedPrefix(selectedTransaction);
 
       if (selectedTransaction.action === "delete") {
-        consumeTrial();
-        sendMessage({ text: prefix });
+        queueOrSendText(prefix);
         setSelectedTransaction(null);
         setInput("");
         return;
@@ -384,8 +551,7 @@ function ChatSession({
 
       const text = input.trim();
       if (!text) return;
-      consumeTrial();
-      sendMessage({ text: `${prefix} ${text}` });
+      queueOrSendText(`${prefix} ${text}`);
       setInput("");
       setSelectedTransaction(null);
       return;
@@ -393,8 +559,7 @@ function ChatSession({
 
     const text = input.trim();
     if (!text) return;
-    consumeTrial();
-    sendMessage({ text });
+    queueOrSendText(text);
     setInput("");
   };
 
@@ -404,29 +569,47 @@ function ChatSession({
     if (!trimmed || isStreaming || !canUseTrialMessage()) return;
 
     if (selectedTransaction) {
-      const cur =
-        selectedTransaction.currency != null && selectedTransaction.currency !== ""
-          ? `, currency=${selectedTransaction.currency}`
-          : "";
-      const prefix = `[ATTACHED_TRANSACTION: id=${selectedTransaction.id}, type=${selectedTransaction.type}, item=${selectedTransaction.item}, amount=${selectedTransaction.amount}, action=${selectedTransaction.action}${cur}]`;
       if (selectedTransaction.action === "delete") return;
-      consumeTrial();
-      sendMessage({ text: `${prefix} ${trimmed}` });
+      queueOrSendText(`${attachedPrefix(selectedTransaction)} ${trimmed}`);
       setInput("");
       setSelectedTransaction(null);
       return;
     }
 
-    consumeTrial();
-    sendMessage({ text: trimmed });
+    queueOrSendText(trimmed);
     setInput("");
+  };
+
+  const handleOfflineVoice = (args: { uri: string; fileName: string }) => {
+    if (!canUseTrialMessage()) return;
+    void enqueueVoice({
+      sourceUri: args.uri,
+      fileName: args.fileName,
+      conversationId: conversationIdRef.current,
+    });
   };
 
   const handleSuggestion = (suggestion: string) => {
     if (isStreaming || !canUseTrialMessage()) return;
-    consumeTrial();
-    sendMessage({ text: suggestion });
+    queueOrSendText(suggestion);
   };
+
+  const handlePendingPress = useCallback(
+    (jobId: string, pendingStatus: "queued" | "syncing" | "failed") => {
+      if (pendingStatus === "failed") {
+        retryJob(jobId);
+      }
+    },
+    [retryJob],
+  );
+
+  const displayMessages = useMemo(() => {
+    const pending = offlineJobsToPendingMessages(pendingJobs);
+    return [...(messages as any[]), ...pending];
+  }, [messages, pendingJobs]);
+
+  const pendingCount = pendingJobs.length;
+  const isSyncingPending = pendingJobs.some((j) => j.status === "syncing");
 
   const handleEdit = (
     id: string,
@@ -515,10 +698,34 @@ function ChatSession({
             Something went wrong. Try again.
           </Text>
         </View>
+      ) : flushError && isOnline ? (
+        <View
+          className="mx-4 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3"
+          style={{ marginTop: belowTopChrome }}
+        >
+          <Text className="text-sm font-medium text-danger leading-snug">
+            Sync failed: {flushError}
+          </Text>
+        </View>
       ) : null}
 
-      <View className="flex-1" style={{ paddingTop: belowTopChrome }}>
-        {messages.length === 0 ? (
+      <View
+        className="flex-1"
+        style={{
+          paddingTop: error || (flushError && isOnline) ? 8 : belowTopChrome,
+        }}
+      >
+        <OfflineBanner
+          pendingCount={pendingCount}
+          isOnline={isOnline}
+          syncing={isSyncingPending}
+          onRetryAll={() => {
+            for (const j of pendingJobs) {
+              if (j.status === "failed") retryJob(j.id);
+            }
+          }}
+        />
+        {displayMessages.length === 0 ? (
           <ChatEmptyState
             onSuggestionPress={handleSuggestion}
             onScanBillPress={handleScanBillPress}
@@ -526,11 +733,12 @@ function ChatSession({
           />
         ) : (
           <MessageList
-            messages={messages as any}
+            messages={displayMessages as any}
             isStreaming={isStreaming}
             onEdit={handleEdit}
             onDelete={handleDelete}
             outdatedIds={outdatedIds}
+            onPendingPress={handlePendingPress}
           />
         )}
       </View>
@@ -549,7 +757,9 @@ function ChatSession({
           isLoading={isStreaming || isTrialsFetching}
           selectedTransaction={selectedTransaction}
           isPremium={isPremium}
+          isOnline={isOnline}
           onVoiceTranscript={handleVoiceTranscript}
+          onOfflineVoice={handleOfflineVoice}
           startReceiptCapture={startReceiptCapture}
           receiptUploading={receiptUploading}
         />

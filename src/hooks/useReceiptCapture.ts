@@ -12,10 +12,19 @@ function premiumUrl() {
 
 type UploadedFile = { url: string; mediaType: string };
 
+export type LocalReceiptFile = {
+  uri: string;
+  fileName: string;
+  mimeType: string;
+};
+
 type Options = {
   isPremium: boolean;
   disabled?: boolean;
+  /** When false, pick saves locally and calls onQueued instead of uploading. */
+  isOnline?: boolean;
   onUploaded: (file: UploadedFile) => void;
+  onQueued?: (file: LocalReceiptFile) => void;
   /** Called when capture is aborted (non-premium, cancel, failed pick). */
   onCaptureDismissed?: () => void;
 };
@@ -23,7 +32,9 @@ type Options = {
 export function useReceiptCapture({
   isPremium,
   disabled = false,
+  isOnline = true,
   onUploaded,
+  onQueued,
   onCaptureDismissed,
 }: Options) {
   const [uploading, setUploading] = useState(false);
@@ -80,6 +91,19 @@ export function useReceiptCapture({
       const ext = mime.includes("png") ? "png" : "jpg";
       const fileName = asset.fileName ?? `receipt-${Date.now()}.${ext}`;
 
+      if (!isOnline) {
+        if (!onQueued) {
+          Alert.alert(
+            "You're offline",
+            "Connect to the internet to upload this receipt, or update the app.",
+          );
+          dismiss();
+          return;
+        }
+        onQueued({ uri: asset.uri, fileName, mimeType: mime });
+        return;
+      }
+
       setUploading(true);
       try {
         const uploaded = await uploadReceiptToImageKit({
@@ -99,7 +123,7 @@ export function useReceiptCapture({
         setUploading(false);
       }
     },
-    [disabled, uploading, onUploaded, dismiss],
+    [disabled, uploading, onUploaded, onQueued, isOnline, dismiss],
   );
 
   const startReceiptCapture = useCallback(() => {
