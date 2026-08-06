@@ -38,6 +38,12 @@
       "expo-font",
       "expo-image",
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow AiXpense to unlock the app with Face ID."
+        }
+      ],
       "expo-status-bar",
       "expo-web-browser",
       [

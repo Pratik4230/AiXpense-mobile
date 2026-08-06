@@ -26,6 +26,7 @@ import { SafeAreaView } from "@/components/ui";
 import { ReportIssueSheet } from "@/components/profile/ReportIssueSheet";
 import { MyIssuesList } from "@/components/profile/MyIssuesList";
 import { ProfileCurrencyCard } from "@/components/profile/ProfileCurrencySection";
+import { BiometricLockToggle } from "@/components/profile/BiometricLockToggle";
 
 function getInitials(name: string) {
   return name
@@ -355,6 +356,7 @@ export default function ProfileScreen() {
         <Card className="mb-4 rounded-3xl border border-separator overflow-hidden">
           <Card.Body className="gap-4 py-5">
             <Text className={SECTION_LABEL}>Security</Text>
+            <BiometricLockToggle />
             {pwSuccess && (
               <View className="rounded-xl border border-success/30 bg-success/10 px-3 py-2.5">
                 <Text className="text-xs font-semibold text-success">
