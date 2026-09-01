@@ -37,7 +37,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-const MAX_FREE_TRIALS = 7;
+import { FREE_LIFETIME_LIMIT } from "@/services/trials";
 const WEB_PROFILE_URL = "https://aixpense.in/profile";
 
 const SECTION_LABEL =
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
 
   const isPremium = user.isPremium ?? false;
   const freeTrials = user.freeTrials ?? 0;
-  const trialPercent = Math.min((freeTrials / MAX_FREE_TRIALS) * 100, 100);
+  const trialPercent = Math.min((freeTrials / FREE_LIFETIME_LIMIT) * 100, 100);
 
   const legalLinks = [
     { label: "Privacy Policy", url: "https://aixpense.in/privacy" },
@@ -324,7 +324,7 @@ export default function ProfileScreen() {
                     Free messages remaining
                   </Text>
                   <Text className="text-sm font-semibold text-foreground">
-                    {freeTrials} / {MAX_FREE_TRIALS}
+                    {freeTrials} / {FREE_LIFETIME_LIMIT}
                   </Text>
                 </View>
                 <View className="h-2 w-full rounded-full bg-default overflow-hidden">

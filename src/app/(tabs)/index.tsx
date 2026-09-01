@@ -63,6 +63,7 @@ import {
   useTrialActions,
 } from "@/services/trials";
 import { webApiBase } from "@/lib/env";
+import { parseChatErrorMessage } from "@/lib/aiErrors";
 
 function ChatSessionLoader({
   conversationId,
@@ -705,7 +706,7 @@ function ChatSession({
           style={{ marginTop: belowTopChrome }}
         >
           <Text className="text-sm font-medium text-danger leading-snug">
-            Something went wrong. Try again.
+            {parseChatErrorMessage(error.message)}
           </Text>
         </View>
       ) : flushError && isOnline ? (

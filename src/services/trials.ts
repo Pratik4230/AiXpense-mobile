@@ -2,7 +2,14 @@ import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-quer
 import { useCallback } from "react";
 import { api } from "@/lib/api";
 
-export const FREE_LIFETIME_LIMIT = 7;
+export const FREE_LIFETIME_LIMIT = 3;
+
+export function normalizeFreeTrials(
+  freeTrials: number | null | undefined,
+): number {
+  if (freeTrials == null || Number.isNaN(freeTrials)) return 0;
+  return Math.max(0, Math.min(freeTrials, FREE_LIFETIME_LIMIT));
+}
 
 /** Matches `aixpense/src/app/api/chat/route.ts` 403 body. */
 export const TRIAL_LIMIT_ERROR_MESSAGE =
@@ -16,7 +23,7 @@ export interface TrialsData {
 export const TRIALS_QUERY_KEY = ["user", "trials"] as const;
 
 export function trialUsage(freeTrials: number) {
-  const remaining = Math.max(0, Math.min(freeTrials, FREE_LIFETIME_LIMIT));
+  const remaining = normalizeFreeTrials(freeTrials);
   const used = FREE_LIFETIME_LIMIT - remaining;
   const remainingPercent = (remaining / FREE_LIFETIME_LIMIT) * 100;
   return { remaining, used, remainingPercent, exhausted: remaining <= 0 };
